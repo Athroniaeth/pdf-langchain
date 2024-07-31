@@ -1,13 +1,19 @@
 import logging
+from functools import partial
 from typing import Optional
 
-import gradio as gr
+import gradio
+from gradio import ChatInterface
 
+from src._typing import History
+from src.client import RagClient
 from src.components import PDFReader
-from src.components.chatbot import Chatbot
 
 
 def app(
+        model_id: str,
+        hf_token: str,
+
         host: str = "127.0.0.1",
         port: int = 7860,
         debug: bool = False,
@@ -31,13 +37,26 @@ def app(
     """
     logging.debug("Starting the Gradio application")
 
-    with gr.Blocks() as application:
-        with gr.Row():
-            with gr.Column(scale=1):  # Prend 2/3 de la largeur
-                PDFReader()
+    def echo(
+            message: str,
+            history: History,
+            pdf_reader: PDFReader,
+            rag_client: RagClient,
+    ) -> str:
+        return message
 
-            with gr.Column(scale=2):  # Prend 2/3 de la largeur
-                Chatbot()
+    rag_client = RagClient(model_id=model_id, hf_token=hf_token)
+
+    with gradio.Blocks() as application:
+        with gradio.Row():
+            with gradio.Column(scale=1):  # Prend 2/3 de la largeur
+                pdf_reader = PDFReader()
+
+            with gradio.Column(scale=2):  # Prend 2/3 de la largeur
+                interface = ChatInterface(
+                    fn=partial(echo, pdf_reader=pdf_reader, rag_client=rag_client),
+                    examples=["Quel est le sujet de ce document ?", "Résume moi ce document"],
+                )
 
     application.launch(
         server_name=host,

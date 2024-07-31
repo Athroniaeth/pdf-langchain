@@ -10,7 +10,11 @@ from typer import Typer
 
 from src.app import app
 
-cli = Typer(no_args_is_help=True)
+cli = Typer(
+    pretty_exceptions_enable=False,
+    pretty_exceptions_show_locals=False,
+    no_args_is_help=True
+)
 
 
 class Level(StrEnum):
@@ -155,11 +159,14 @@ def get_info_environment(
 
 @cli.command()
 def run(
+        ctx: typer.Context = typer.Option(None, callback=callback, is_eager=True),
         config: str = typer.Option("", callback=conf_callback, is_eager=True),  # noqa: Parameter 'config' value is not used
         environment: Environment = typer.Option(Environment.DEVELOPMENT, envvar="ENVIRONMENT", help="Environnement d'exécution."),
 
         ssl_keyfile: str = typer.Option(None, envvar="SSL_KEYFILE", help="Fichier de clé SSL."),
         ssl_certfile: str = typer.Option(None, envvar="SSL_CERTFILE", help="Fichier de certificat SSL."),
+
+        model_id: str = typer.Option("mistralai/Mistral-7B-Instruct-v0.3", help="Identifiant HuggingFace du modèle LLM."),
 ):
     """ Start the server with the given environment. """
 
@@ -172,7 +179,16 @@ def run(
     logging.info(f"{host=}, {port=}, {ssl=}")
 
     # Run the Gradio application with the given environment
-    app(host=host, port=port, ssl_keyfile=ssl_keyfile, ssl_certfile=ssl_certfile)
+    app(
+        model_id=model_id,
+        hf_token=ctx.obj.hf_token,
+
+        host=host,
+        port=port,
+
+        ssl_keyfile=ssl_keyfile,
+        ssl_certfile=ssl_certfile
+    )
 
 
 if __name__ == "__main__":

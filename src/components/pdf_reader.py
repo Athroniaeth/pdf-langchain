@@ -28,6 +28,8 @@ class PDFReader:
         self.height = height
         self.initial_height = initial_height
 
+        self.file_path = None
+
         # Variables globales pour le document PDF et la page actuelle
         self.pdf_document = None
         self.current_page = 0
@@ -64,6 +66,8 @@ class PDFReader:
         )
 
     def load_pdf(self, file_path: Optional[str]):
+        self.file_path = file_path
+
         if file_path is not None:
             self.current_page = 0
             self.pdf_document = fitz.open(file_path)

@@ -2,7 +2,7 @@ import logging
 import os
 import time
 from functools import lru_cache, wraps
-from typing import Optional
+from typing import Optional, Dict
 
 from langchain_community.llms.huggingface_endpoint import HuggingFaceEndpoint
 from langchain_core.language_models import BaseLLM
@@ -13,7 +13,7 @@ def get_llm_model(
         model_id: str,
         hf_token: Optional[str] = None,
         max_new_tokens=512,
-        models_kwargs: Optional[dict] = None,
+        **models_kwargs: Dict,
 ) -> BaseLLM:
     """
     Load a CausalLM model (local or cloud).
