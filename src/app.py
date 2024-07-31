@@ -3,6 +3,8 @@ from typing import Optional
 
 import gradio as gr
 
+from src.components.chatbot import Chatbot
+
 
 def app(
         host: str = "127.0.0.1",
@@ -26,16 +28,23 @@ def app(
     Returns:
         None
     """
-    logging.info("Starting the Gradio application")
-    def greet(name):
-        return "Hello " + name + "!"
+    logging.debug("Starting the Gradio application")
 
-    demo = gr.Interface(fn=greet, inputs="textbox", outputs="textbox")
+    with gr.Blocks() as application:
+        with gr.Row():
+            with gr.Column(scale=1):  # Prend 2/3 de la largeur
+                gr.Markdown("Title")
 
-    demo.launch(
+            with gr.Column(scale=2):  # Prend 2/3 de la largeur
+                Chatbot()
+
+    application.launch(
         server_name=host,
         server_port=port,
         debug=debug,
+
+        ssl_keyfile=ssl_keyfile,
+        ssl_certfile=ssl_certfile,
     )
 
 
