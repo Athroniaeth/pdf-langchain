@@ -6,6 +6,8 @@ from types import SimpleNamespace
 import typer
 from typer import Typer
 
+from src.app import app
+
 cli = Typer(no_args_is_help=True)
 
 
@@ -90,7 +92,7 @@ def deploy(
         config: str = typer.Option("", callback=conf_callback, is_eager=True),  # noqa: Parameter 'config' value is not used
 ):
     """ Start application web (Gradio) server in production mode. """
-    raise typer.Exit(0)
+    app()
 
 
 if __name__ == "__main__":
