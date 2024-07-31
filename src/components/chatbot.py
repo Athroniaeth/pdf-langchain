@@ -1,11 +1,10 @@
 import random
 import time
-from typing import List, Tuple
+from typing import Tuple
 
 import gradio
-from gradio import ChatMessage
 
-History = List[ChatMessage]
+from src._typing import History
 
 
 class Chatbot:
