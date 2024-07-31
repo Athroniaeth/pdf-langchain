@@ -1,7 +1,9 @@
 import logging
+import os
 import tomllib
 from enum import StrEnum
 from types import SimpleNamespace
+from typing import Optional, Tuple
 
 import typer
 from typer import Typer
@@ -25,7 +27,7 @@ class Level(StrEnum):
 def callback(
         ctx: typer.Context,
         hf_token: str = typer.Option(None, envvar="HF_TOKEN", help="Access token for Hugging Face API."),
-        logging_level: Level = typer.Option(Level.ERROR, help="Log level for application logs."),
+        logging_level: Level = typer.Option(Level.INFO, help="Log level for application logs."),
 ):
     """
     Initialize the CLI application context.
@@ -41,19 +43,22 @@ def callback(
     Returns:
         SimpleNamespace: Object containing application parameters.
     """
-    logging_level = logging.getLevelName(logging_level)
+    # Set the logging level for the application
+    _logging_level = logging.getLevelName(logging_level)
+    logging.getLogger('root').setLevel(_logging_level)
+    logging.info(f"Logging level : {logging_level}")
 
-    logging.basicConfig(level=logging_level)
+    # Set the logging level for the httpx library
+    httpx_logger = logging.getLogger('httpx')
+    httpx_logger.setLevel(logging.WARNING)
 
     if hf_token is None:
         logging.exception("Missing Hugging Face token; pass --hf-token or set env[HF_TOKEN]")
         raise typer.Exit(1)
 
-    logging.debug(f"Environment variable 'HF_TOKEN' : {hf_token}")
-
     ctx.obj = SimpleNamespace(
         hf_token=hf_token,
-        logging_level=logging_level
+        logging_level=_logging_level
     )
 
 
@@ -87,12 +92,87 @@ def conf_callback(ctx: typer.Context, param: typer.CallbackParam, filepath: str)
     return filepath
 
 
+class Environment(StrEnum):
+    """Environment to use (local or ovh cloud)."""
+
+    DEVELOPMENT = "development"
+    PRODUCTION = "production"
+
+
+def get_info_environment(
+        environment: Environment = Environment.DEVELOPMENT,
+        ssl_keyfile: Optional[str] = None,
+        ssl_certfile: Optional[str] = None,
+) -> Tuple[str, int, str, str]:
+    """
+    Get the information of the environment.
+
+    Args:
+    --------
+        environment (Environment): The environment to use.
+        ssl_keyfile (Optional[str]): The SSL key file.
+        ssl_certfile (Optional[str]): The SSL certificate file.
+
+    Returns:
+    --------
+        str: The host to use for the server.
+        int: The port to use for the server.
+        str: The SSL key file path.
+        str: The SSL certificate file path.
+    """
+    match environment:
+        case Environment.DEVELOPMENT:
+            host = "127.0.0.1"
+            port = 7860
+            ssl_keyfile = None
+            ssl_certfile = None
+
+        case Environment.PRODUCTION:
+            list_raises = []
+            host = "0.0.0.0"
+            port = 443
+
+            if not ssl_keyfile:
+                list_raises.append(EnvironmentError("'SSL_KEYFILE' environment variable not set"))
+
+            if not ssl_certfile:
+                list_raises.append(EnvironmentError("'SSL_CERTFILE' environment variable not set"))
+
+            if ssl_keyfile and not os.path.exists(ssl_keyfile):
+                list_raises.append(FileNotFoundError(f"'{ssl_keyfile}' not found"))
+
+            if ssl_certfile and not os.path.exists(ssl_certfile):
+                list_raises.append(FileNotFoundError(f"'{ssl_certfile}' not found"))
+
+            if list_raises:
+                raise ExceptionGroup("Failed to start the server", list_raises)
+
+        case _:
+            raise ValueError(f"Environment '{environment}' not supported")
+
+    return host, port, ssl_keyfile, ssl_certfile
+
+
 @cli.command()
-def deploy(
+def run(
         config: str = typer.Option("", callback=conf_callback, is_eager=True),  # noqa: Parameter 'config' value is not used
+        environment: Environment = typer.Option(Environment.DEVELOPMENT, envvar="ENVIRONMENT", help="Environnement d'exécution."),
+
+        ssl_keyfile: str = typer.Option(None, envvar="SSL_KEYFILE", help="Fichier de clé SSL."),
+        ssl_certfile: str = typer.Option(None, envvar="SSL_CERTFILE", help="Fichier de certificat SSL."),
 ):
-    """ Start application web (Gradio) server in production mode. """
-    app()
+    """ Start the server with the given environment. """
+
+    # Get the environment information
+    host, port, ssl_keyfile, ssl_certfile = get_info_environment(environment, ssl_keyfile, ssl_certfile)
+
+    # Log the environment information
+    ssl = bool(ssl_keyfile and ssl_certfile)
+    logging.info(f"Environment: {environment}")
+    logging.info(f"{host=}, {port=}, {ssl=}")
+
+    # Run the Gradio application with the given environment
+    app(host=host, port=port, ssl_keyfile=ssl_keyfile, ssl_certfile=ssl_certfile)
 
 
 if __name__ == "__main__":
