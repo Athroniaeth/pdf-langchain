@@ -13,7 +13,6 @@ class Chatbot:
         gradio.ChatInterface(
             fn=respond,
             examples=["Quel est le sujet de ce document ?", "Résume moi ce document"],
-            title="Echo Bot"
         )
 
 
@@ -25,5 +24,4 @@ def respond(message: str, history: History) -> Tuple[str, History]:
     if message == "42":
         response = "The answer to the ultimate question of life, the universe and everything is 42."
 
-    print(history, len(history))
     return response

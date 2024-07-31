@@ -3,6 +3,7 @@ from typing import Optional
 
 import gradio as gr
 
+from src.components import PDFReader
 from src.components.chatbot import Chatbot
 
 
@@ -33,7 +34,7 @@ def app(
     with gr.Blocks() as application:
         with gr.Row():
             with gr.Column(scale=1):  # Prend 2/3 de la largeur
-                gr.Markdown("Title")
+                PDFReader()
 
             with gr.Column(scale=2):  # Prend 2/3 de la largeur
                 Chatbot()
