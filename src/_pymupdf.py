@@ -4,15 +4,23 @@ import fitz
 from PIL import Image
 
 
-def highlight_text(document: fitz.Document, text: str) -> fitz.Document:
-    for page in document:  # Parcourir chaque page du document
-        text_instances = page.search_for(text)
+def highlight_text(document: fitz.Document, text: str, index_page: int) -> fitz.Document:
 
-        # Surligner chaque occurrence trouvée
-        for inst in text_instances:
-            highlight = page.add_highlight_annot(inst)  # Ajouter une annotation de surlignage
-            highlight.set_colors(stroke=(1, 1, 0))  # Définir la couleur du surlignage en jaune (RGB)
-            highlight.update()  # Mettre à jour l'annotation pour appliquer les modifications
+    # clean all old highlights
+    for page in document:
+        for annot in page.annots():
+            # Vérifier si l'annotation est un surlignage
+            if annot.type[1] == 8:
+                annot.delete()
+
+    page = document[index_page]  # Sélectionner la page
+    text_instances = page.search_for(text)
+
+    # Surligner chaque occurrence trouvée
+    for inst in text_instances:
+        highlight = page.add_highlight_annot(inst)  # Ajouter une annotation de surlignage
+        highlight.set_colors(stroke=(1, 1, 0))  # Définir la couleur du surlignage en jaune (RGB)
+        highlight.update()  # Mettre à jour l'annotation pour appliquer les modifications
 
     return document
 

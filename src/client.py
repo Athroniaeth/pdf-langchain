@@ -114,24 +114,26 @@ class RagClient:
         logging.debug(f"Split {length_chunks} chunks (ratio: {length_chunks / length_documents:.2f} chunks/page)")
         self.db_vector = Chroma.from_documents(chunks, embedding=self.embeddings_model)
 
+    def clean_pdf(self):
+        if self.db_vector is not None:
+            self.db_vector = Chroma(embedding_function=self.embeddings_model)
+
     def invoke(self, query: str) -> Tuple[str, List[Document]]:
         # Rafraichit le pipeline
         self.load_pipeline()
 
-        with log_inference(self.id):
-            pipeline_output = self.pipeline.invoke(
-                input={"input": f"{query}"},
-                config={"configurable": {"session_id": self.id}}
-            )
+        # with log_inference(self.id):
+        pipeline_output = self.pipeline.invoke(
+            input={"input": f"{query}"},
+            config={"configurable": {"session_id": self.id}}
+        )
 
-            llm_output = pipeline_output["answer"]
-            list_document_context = pipeline_output["context"]
+        llm_output = pipeline_output["answer"]
+        list_document_context = pipeline_output["context"]
 
         logging.debug(f"Result of llm model :\n\"\"\"\n{llm_output}\n\"\"\"")
 
-        # Prend uniquement ce qui a été généré par le LLM
-        generated_llm_output = llm_output  # """[length_prompt:]"""
-        return generated_llm_output, list_document_context
+        return llm_output, list_document_context
 
     def respond(self, message: str, history: History) -> str:
 
