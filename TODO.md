@@ -1,0 +1,2 @@
+- Supprimer la mémoire côté LangChain
+- Réparer l'actualisation des PDFs (hightlight text)
