@@ -19,7 +19,6 @@ cli = Typer(
 
 class Level(StrEnum):
     """Log levels for the application."""
-
     DEBUG = "DEBUG"
     INFO = "INFO"
     WARNING = "WARNING"
@@ -30,8 +29,8 @@ class Level(StrEnum):
 def set_logging_level(logging_name: str, logging_level: Level) -> None:
     """ Set the logging level. """
     _logging_level = logging.getLevelName(logging_level)
-    logging.getLogger('root').setLevel(_logging_level)
-    logging.info(f"Logging level of '{logging_name}': {_logging_level}")
+    logging.getLogger(logging_name).setLevel(_logging_level)
+    logging.info(f"Logging level of '{logging_name}': {logging_level}")
 
 
 @cli.callback()
@@ -49,6 +48,8 @@ def callback(
         ctx (typer.Context): Command context.
         hf_token (str): Access token for Hugging Face API.
         logging_level (Level): Log level for application logs.
+        logging_level_hf (Level): Log level for Hugging Face logs.
+        logging_level_other (Level): Log level for other logs (urllib3, httpcore, ChromaDB).
 
     Raises:
         typer.Exit: If Hugging Face token is missing.
@@ -56,19 +57,13 @@ def callback(
     Returns:
         SimpleNamespace: Object containing application parameters.
     """
+    loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict if name != 'root']
+    for logger in loggers:
+        logger.setLevel(logging_level_other)
+
     # Set the logging level for the application
     set_logging_level("root", logging_level)
-    set_logging_level('transformers', logging_level_other)
-
-    set_logging_level('httpx', logging_level_other)
-    set_logging_level('urlib3', logging_level_other)
-    set_logging_level('httpcore', logging_level_other)
-    set_logging_level('Chromadb', logging_level_other)
-
-    if logging_level_hf:
-        _logging_level_hf = logging.getLevelName(logging_level_hf)
-        logging.getLogger('transformers').setLevel(_logging_level_hf)
-        logging.info(f"Logging level for Hugging Face : {logging_level_hf}")
+    set_logging_level('transformers', logging_level_hf)
 
     if hf_token is None:
         logging.exception("Missing Hugging Face token; pass --hf-token or set env[HF_TOKEN]")

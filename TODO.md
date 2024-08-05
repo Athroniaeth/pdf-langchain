@@ -5,3 +5,4 @@
 - ~~Réparer l'actualisation des PDFs (highlight text)~~
 - Liée le bouton SUBMIT et l'input text de l'interface chat (et leurs echo)
 - ~~Supprimer tous les warnings de langchain (mauvaise importation, depreciate en 0.4)~~
+- Mettre les fonctions Retry, Delete, Undo dans le chat interface
