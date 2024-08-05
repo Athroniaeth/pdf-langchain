@@ -8,6 +8,7 @@ from typing import Optional, Tuple
 import typer
 from typer import Typer
 
+from src._logging import Level, clean_logging, set_logging_level
 from src.app import app
 
 cli = Typer(
@@ -15,22 +16,6 @@ cli = Typer(
     pretty_exceptions_show_locals=False,
     no_args_is_help=True
 )
-
-
-class Level(StrEnum):
-    """Log levels for the application."""
-    DEBUG = "DEBUG"
-    INFO = "INFO"
-    WARNING = "WARNING"
-    ERROR = "ERROR"
-    CRITICAL = "CRITICAL"
-
-
-def set_logging_level(logging_name: str, logging_level: Level) -> None:
-    """ Set the logging level. """
-    _logging_level = logging.getLevelName(logging_level)
-    logging.getLogger(logging_name).setLevel(_logging_level)
-    logging.info(f"Logging level of '{logging_name}': {logging_level}")
 
 
 @cli.callback()
@@ -57,9 +42,7 @@ def callback(
     Returns:
         SimpleNamespace: Object containing application parameters.
     """
-    loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict if name != 'root']
-    for logger in loggers:
-        logger.setLevel(logging_level_other)
+    clean_logging(logging_level_other)
 
     # Set the logging level for the application
     set_logging_level("root", logging_level)
