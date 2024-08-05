@@ -1,5 +1,7 @@
 - ~~Supprimer la mémoire côté LangChain~~
 - Crée des fichiers de configurations pour les interfaces
 - Refactoriser les composants gradio, simplifier les fonctions, rendre les composants modulaires
-- Supprimer le logging des autres librairies si voulu (différence entre les logs d'application et des librairies)
+- ~~Supprimer le logging des autres librairies si voulu (différence entre les logs d'application et des librairies)~~
 - ~~Réparer l'actualisation des PDFs (highlight text)~~
+- Liée le bouton SUBMIT et l'input text de l'interface chat (et leurs echo)
+- ~~Supprimer tous les warnings de langchain (mauvaise importation, depreciate en 0.4)~~
