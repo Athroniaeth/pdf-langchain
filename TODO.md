@@ -8,3 +8,4 @@
 - ~~Mettre les fonctions Retry, Delete, Undo dans le chat interface~~
 - Pas d'erreur quand aucun document n'est fournit au RAG
 - Permettre de mettre tous le document en contexte
+- Crée la bdd de vecteur lors du chargement du PDF, pas lors de l'inférence

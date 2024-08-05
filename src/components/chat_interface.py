@@ -25,11 +25,7 @@ class ChatInterface:
     undo_button: gr.Button
     clear_button: gr.Button
 
-    def __init__(
-            self,
-            activate_chat_events: bool = True,
-            activate_button_events: bool = True,
-    ):
+    def __init__(self):
         self.history = []
 
         with gr.Blocks() as application:
@@ -56,39 +52,44 @@ class ChatInterface:
 
             self.application = application
 
-            if activate_chat_events:
-                self.input.submit(
-                    fn=self.echo,
-                    inputs=[self.input],
-                    outputs=[self.input, self.chat]
-                )
+    def bind_events(
+            self,
+            activate_chat_events: bool = True,
+            activate_button_events: bool = True,
+    ):
+        """ Bind the events for the chat interface. """
 
-                self.submit.click(
-                    fn=self.echo,
-                    inputs=[self.input],
-                    outputs=[self.input, self.chat]
-                )
+        if activate_chat_events:
+            self.input.submit(
+                fn=self.echo,
+                inputs=[self.input],
+                outputs=[self.input, self.chat]
+            )
 
-            if activate_button_events:
-                self.retry_button.click(
-                    fn=self.retry,
-                    outputs=[self.input, self.chat]
-                )
+            self.submit.click(
+                fn=self.echo,
+                inputs=[self.input],
+                outputs=[self.input, self.chat]
+            )
 
-                self.undo_button.click(
-                    fn=self.undo,
-                    outputs=[self.input, self.chat]
-                )
+        if activate_button_events:
+            self.retry_button.click(
+                fn=self.retry,
+                outputs=[self.input, self.chat]
+            )
 
-                self.clear_button.click(
-                    fn=self.clear,
-                    outputs=[self.input, self.chat]
-                )
+            self.undo_button.click(
+                fn=self.undo,
+                outputs=[self.input, self.chat]
+            )
 
-        self.application = application
+            self.clear_button.click(
+                fn=self.clear,
+                outputs=[self.input, self.chat]
+            )
 
     def retry(self) -> (str, History):
-        if len(self.history) != 0:
+        if len(self.history) > 1:
             # Get the last user message
             last_user_message = self.history[-2].content
 
@@ -114,21 +115,12 @@ class ChatInterface:
 
     def echo(self, message: str) -> (str, History):
         # Update the history
-        chat_message = ChatMessage(
-            "user",
-            message,
-        )
+        user_message = ChatMessage("user", message)
+        assistant_message = ChatMessage("assistant", "I don't know the answer to that question.")
 
-        # Return string generation LLM
-        self.history.append(chat_message)
-
-        chat_message = ChatMessage(
-            "assistant",
-            "I don't know the answer to that question.",
-        )
-
-        # Return string generation LLM
-        self.history.append(chat_message)
+        # Append the messages to the history
+        self.history.append(user_message)
+        self.history.append(assistant_message)
 
         # Clear input, return history
         return "", self.history

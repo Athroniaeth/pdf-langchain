@@ -41,6 +41,8 @@ def app(
             hf_token=hf_token
         )
 
+        rag_interface.bind_events()
+
     application.launch(
         server_name=host,
         server_port=port,

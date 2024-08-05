@@ -3,6 +3,7 @@ import gradio
 import gradio as gr
 from dotenv import load_dotenv
 from gradio import ChatMessage
+from overrides import overrides
 
 from src import ENV_PATH
 from src._pymupdf import highlight_text
@@ -12,7 +13,7 @@ from src.components import PDFReader
 from src.components.chat_interface import ChatInterface
 
 
-class RagInterface:
+class RagInterface(ChatInterface):
     """
     Rag interface for the Gradio application.
     
@@ -20,8 +21,6 @@ class RagInterface:
     function must just return the response in string format. This class
     return the response in string format and update the PDF display.
     """
-    history: History
-
     rag_client: RagClient
     pdf_reader: PDFReader
     chat_interface: ChatInterface
@@ -30,7 +29,6 @@ class RagInterface:
             self,
             model_id: str,
             hf_token: str,
-            activate_gradio_events: bool = True
     ):
         self.rag_client = RagClient(
             model_id=model_id,
@@ -43,36 +41,50 @@ class RagInterface:
                     self.pdf_reader = PDFReader()
 
                 with gradio.Column(scale=2):  # Prend 2/3 de la largeur
-                    self.chat_interface = ChatInterface(
+                    super().__init__()
+                    super().bind_events(
                         activate_chat_events=False,
                         activate_button_events=True,
                     )
 
             self.application = application
 
-        self.chat_interface.submit.click(
+    @overrides(check_signature=False)
+    def bind_events(self):
+        """ Bind the events for the chat interface. """
+
+        self.input.submit(
             fn=self.echo,
-            inputs=[self.chat_interface.input],
-            outputs=[self.chat_interface.input, self.chat_interface.chat, self.pdf_reader.pdf_display, self.pdf_reader.counter]
+            inputs=[self.input],
+            outputs=[self.input, self.chat, self.pdf_reader.pdf_display, self.pdf_reader.counter]
         )
 
+        self.submit.click(
+            fn=self.echo,
+            inputs=[self.input],
+            outputs=[self.input, self.chat, self.pdf_reader.pdf_display, self.pdf_reader.counter]
+        )
+
+    @overrides(check_signature=False)
     def echo(self, message: str) -> (str, History, fitz.Pixmap, str):
         """ Update the history, return the response in string format and update the PDF display. """
+
         user_message = ChatMessage("user", message)
         assistant_message = ChatMessage("assistant", self.invoke(message))
 
-        # Return string generation LLM
-        self.chat_interface.history.append(user_message)
-        self.chat_interface.history.append(assistant_message)
+        # Append the messages to the history
+        self.history.append(user_message)
+        self.history.append(assistant_message)
 
         # Update the PDF display (highlight text)
         image, counter_update = self.pdf_reader.navigate_pdf(direction=0)
 
         # Clear input, return history, update PDF display (image, counter)
-        return "", self.chat_interface.history, image, counter_update
+        return "", self.history, image, counter_update
 
     def invoke(self, message: str) -> str:
         """ Invoke the RAG model and highlight the text in the PDF document. """
+
         file_path = self.pdf_reader.file_path
 
         if file_path is not None:
