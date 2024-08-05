@@ -1,21 +1,20 @@
 import logging
-import uuid
 from typing import List, Tuple
 
 from fitz import Document
 from langchain import hub
 from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain.chains.history_aware_retriever import create_history_aware_retriever
 from langchain.chains.retrieval import create_retrieval_chain
 from langchain_chroma import Chroma
 from langchain_community.chat_message_histories.in_memory import ChatMessageHistory
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_core.chat_history import BaseChatMessageHistory
-from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_core.language_models import BaseLLM
+from langchain_core.prompts import BasePromptTemplate
+from langchain_core.runnables import Runnable
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from src._typing import History
 from src.models import get_llm_model
 
 store = {}
@@ -27,20 +26,25 @@ def get_by_session_id(session_id: str) -> BaseChatMessageHistory:
 
 
 class RagClient:
+    """ Rag client LangChain pipeline. """
+
+    pipeline: Runnable
+
+    db_vector: Chroma
+    llm_model: BaseLLM
+    prompt_rag: BasePromptTemplate
+    embeddings_model: HuggingFaceEmbeddings
+
     def __init__(
             self,
             model_id: str,
             hf_token: str,
 
             id_prompt_rag: str = "athroniaeth/rag-prompt-mistral-custom-2",
-            id_prompt_contextualize: str = "athroniaeth/contextualize-prompt",
 
             models_kwargs: dict = None,
             search_kwargs: dict = None,
     ):
-        self.pipeline = None
-        self.id = uuid.uuid4()
-
         if models_kwargs is None:
             models_kwargs = {'max_length': 512}
 
@@ -58,12 +62,7 @@ class RagClient:
         self.db_vector = Chroma(embedding_function=self.embeddings_model)
 
         self.prompt_rag = hub.pull(id_prompt_rag)  # "athroniaeth/rag-prompt")
-        self.prompt_contextualize = hub.pull(id_prompt_contextualize)  # "athroniaeth/contextualize-prompt")
 
-        self.load_retriever(search_kwargs)
-        self.load_pipeline()
-
-    def load_retriever(self, search_kwargs: dict) -> None:
         if search_kwargs is None:
             search_kwargs = {
                 "k": 3,  # Amount of documents to return
@@ -75,32 +74,19 @@ class RagClient:
 
         self.retreiver = self.db_vector.as_retriever(search_kwargs=search_kwargs)  # noqa
 
-    def load_pipeline(self) -> None:
-        history_aware_retriever = create_history_aware_retriever(
-            self.llm_model,
-            self.retreiver,
-            self.prompt_contextualize
-        )
-
-        question_answer_chain = create_stuff_documents_chain(
+        combine_docs_chain = create_stuff_documents_chain(
             self.llm_model,
             self.prompt_rag
         )
 
-        rag_chain = create_retrieval_chain(
-            history_aware_retriever,
-            question_answer_chain
-        )
-
-        self.pipeline = RunnableWithMessageHistory(
-            rag_chain,
-            get_by_session_id,
-            input_messages_key="input",
-            history_messages_key="chat_history",
-            output_messages_key="answer",
+        # LangChain 'rag_chain' example "langchain\chains\retrieval.py"
+        self.pipeline = create_retrieval_chain(
+            self.retreiver,
+            combine_docs_chain
         )
 
     def load_pdf(self, path: str):
+        """ Load a PDF file and create a vector representation of the text. """
         loader = PyMuPDFLoader(path)
 
         documents = loader.load()
@@ -119,13 +105,13 @@ class RagClient:
             self.db_vector = Chroma(embedding_function=self.embeddings_model)
 
     def invoke(self, query: str) -> Tuple[str, List[Document]]:
-        # Rafraichit le pipeline
-        self.load_pipeline()
+        # It's just a joke
+        if query == "42":
+            return "The answer to the ultimate question of life, the universe, and everything is 42.", []
 
-        # with log_inference(self.id):
+        # Todo : Add inference logging decorator
         pipeline_output = self.pipeline.invoke(
             input={"input": f"{query}"},
-            config={"configurable": {"session_id": self.id}}
         )
 
         llm_output = pipeline_output["answer"]
@@ -134,12 +120,3 @@ class RagClient:
         logging.debug(f"Result of llm model :\n\"\"\"\n{llm_output}\n\"\"\"")
 
         return llm_output, list_document_context
-
-    def respond(self, message: str, history: History) -> str:
-
-        if message == "42":
-            response = "The answer to the ultimate question of life, the universe and everything is 42."
-            return response
-
-        llm_output, list_document_context = self.invoke(message)
-        return llm_output
