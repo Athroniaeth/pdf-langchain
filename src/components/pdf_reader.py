@@ -117,6 +117,11 @@ class PDFReader:
         return img
 
     def navigate_pdf(self, direction):
+        """ Navigate through the pages of the PDF. """
+
+        if self.pdf_document is None:
+            return gr.update(value="No PDF loaded."), gr.update(visible=False)
+
         num_pages = self.pdf_document.page_count
         self.current_page = max(0, min(num_pages - 1, self.current_page + direction))
 

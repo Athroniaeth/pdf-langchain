@@ -92,11 +92,15 @@ class RagInterface(ChatInterface):
 
         message, list_document_context = self.rag_client.invoke(message)
 
-        document = fitz.open(file_path)
-        for document_context in list_document_context:
-            text = document_context.page_content  # noqa nique tamre
-            page = document_context.metadata['page']
-            document = highlight_text(document, text, page)
+        if file_path is None:
+            document = None
+        else:
+            document = fitz.open(file_path)
+
+            for document_context in list_document_context:
+                text = document_context.page_content  # noqa nique tamre
+                page = document_context.metadata['page']
+                document = highlight_text(document, text, page)
 
         self.pdf_reader.pdf_document = document
         return message
