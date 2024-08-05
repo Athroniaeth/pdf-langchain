@@ -93,7 +93,7 @@ class RagClient:
         length_documents = len(documents)
         logging.debug(f"Loaded {length_documents} pages from '{path}'")
 
-        splitter = RecursiveCharacterTextSplitter(chunk_size=512)
+        splitter = RecursiveCharacterTextSplitter(chunk_size=2048)
         chunks = splitter.split_documents(documents)
         length_chunks = len(chunks)
 

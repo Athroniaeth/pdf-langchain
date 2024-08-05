@@ -25,7 +25,11 @@ class ChatInterface:
     undo_button: gr.Button
     clear_button: gr.Button
 
-    def __init__(self, activate_gradio_events: bool = True):
+    def __init__(
+            self,
+            activate_chat_events: bool = True,
+            activate_button_events: bool = True,
+    ):
         self.history = []
 
         with gr.Blocks() as application:
@@ -52,7 +56,7 @@ class ChatInterface:
 
             self.application = application
 
-            if activate_gradio_events:
+            if activate_chat_events:
                 self.input.submit(
                     fn=self.echo,
                     inputs=[self.input],
@@ -65,7 +69,48 @@ class ChatInterface:
                     outputs=[self.input, self.chat]
                 )
 
+            if activate_button_events:
+                self.retry_button.click(
+                    fn=self.retry,
+                    outputs=[self.input, self.chat]
+                )
+
+                self.undo_button.click(
+                    fn=self.undo,
+                    outputs=[self.input, self.chat]
+                )
+
+                self.clear_button.click(
+                    fn=self.clear,
+                    outputs=[self.input, self.chat]
+                )
+
         self.application = application
+
+    def retry(self) -> (str, History):
+        if len(self.history) != 0:
+            # Get the last user message
+            last_user_message = self.history[-2].content
+
+            # Remove the last two messages (assistant and user)
+            self.undo()
+
+            # Retry the last message (user)
+            return self.echo(last_user_message)
+
+        return "", self.history
+
+    def undo(self) -> (str, History):
+        if len(self.history) != 0:
+            # Remove the last two messages (assistant and user)
+            self.history.pop()
+            self.history.pop()
+
+        return "", self.history
+
+    def clear(self) -> (str, History):
+        self.history.clear()
+        return "", self.history
 
     def echo(self, message: str) -> (str, History):
         # Update the history

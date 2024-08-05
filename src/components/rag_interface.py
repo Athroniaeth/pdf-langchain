@@ -43,7 +43,10 @@ class RagInterface:
                     self.pdf_reader = PDFReader()
 
                 with gradio.Column(scale=2):  # Prend 2/3 de la largeur
-                    self.chat_interface = ChatInterface(activate_gradio_events=False)
+                    self.chat_interface = ChatInterface(
+                        activate_chat_events=False,
+                        activate_button_events=True,
+                    )
 
             self.application = application
 
