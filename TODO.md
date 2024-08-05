@@ -1,2 +1,5 @@
 - Supprimer la mémoire côté LangChain
-- Réparer l'actualisation des PDFs (hightlight text)
+- Crée des fichiers de configurations pour les interfaces
+- Refactoriser les composants gradio, simplifier les fonctions, rendre les composants modulaires
+- Supprimer le logging des autres librairies si voulu (différence entre les logs d'application et des librairies)
+- ~~Réparer l'actualisation des PDFs (highlight text)~~

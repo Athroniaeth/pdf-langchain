@@ -22,8 +22,30 @@ class PDFReader:
         height (int): The height of the PDF display.
         initial_height (int): The initial height of the PDF display.
     """
+    label: str
+    height: int
+    initial_height: int
 
-    def __init__(self, label="Upload PDF", height=410, initial_height=250):
+    current_page: int
+    file_path: Optional[str]
+    pdf_document: Optional[fitz.Document]
+
+    file_input: gr.File
+    pdf_display: gr.Image
+    counter: gr.Textbox
+
+    prev_button: gr.Button
+    next_button: gr.Button
+
+    reset_button: gr.Button
+
+    def __init__(
+            self,
+            label: str = "Upload PDF",
+            height: int = 410,
+            initial_height: int = 250,
+            activate_gradio_events: bool = True
+    ):
         self.label = label
         self.height = height
         self.initial_height = initial_height
@@ -36,7 +58,7 @@ class PDFReader:
 
         with gr.Column(variant="compact"):
             self.file_input = gr.File(label=self.label, type="filepath", file_types=[".pdf"])
-            self.pdf_display = gr.Image(visible=False, height=self.initial_height, every=1)
+            self.pdf_display = gr.Image(visible=False, height=self.initial_height)
             self.counter = gr.Textbox(show_label=False, max_lines=1, interactive=False, value="No PDF loaded.")
 
             with gr.Row():
@@ -45,25 +67,26 @@ class PDFReader:
 
             self.reset_button = gr.Button("❌", variant="primary")
 
-        self.file_input.change(
-            fn=self.load_pdf,
-            inputs=[self.file_input],
-            outputs=[self.file_input, self.pdf_display, self.pdf_display, self.counter]
-        )
+        if activate_gradio_events:
+            self.file_input.change(
+                fn=self.load_pdf,
+                inputs=[self.file_input],
+                outputs=[self.file_input, self.pdf_display, self.pdf_display, self.counter]
+            )
 
-        self.prev_button.click(
-            fn=partial(self.navigate_pdf, direction=-1),
-            outputs=[self.pdf_display, self.counter]
-        )
-        self.next_button.click(
-            fn=partial(self.navigate_pdf, direction=1),
-            outputs=[self.pdf_display, self.counter]
-        )
+            self.prev_button.click(
+                fn=partial(self.navigate_pdf, direction=-1),
+                outputs=[self.pdf_display, self.counter]
+            )
+            self.next_button.click(
+                fn=partial(self.navigate_pdf, direction=1),
+                outputs=[self.pdf_display, self.counter]
+            )
 
-        self.reset_button.click(
-            fn=self.reset_pdf,
-            outputs=[self.file_input, self.pdf_display, self.file_input]
-        )
+            self.reset_button.click(
+                fn=self.reset_pdf,
+                outputs=[self.file_input, self.pdf_display, self.file_input]
+            )
 
     def load_pdf(self, file_path: Optional[str]):
         self.file_path = file_path

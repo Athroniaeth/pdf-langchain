@@ -1,15 +1,9 @@
 import logging
-from functools import partial
 from typing import Optional
 
-import fitz
 import gradio
-from gradio import ChatInterface
 
-from src._pymupdf import highlight_text
-from src._typing import History
-from src.client import RagClient
-from src.components import PDFReader
+from src.components.rag_interface import RagInterface
 
 
 def app(
@@ -27,6 +21,8 @@ def app(
     Main function to run Gradio application.
 
     Args:
+        model_id (str): The model ID of Hugging Face LLM.
+        hf_token (str): The Hugging Face token.
         host (str): Host IP address of the server
         port (int): Port number of host server
         debug (bool): Debug mode for development
@@ -39,41 +35,11 @@ def app(
     """
     logging.debug("Starting the Gradio application")
 
-    def echo(
-            message: str,
-            history: History,
-            pdf_reader: PDFReader,
-            rag_client: RagClient,
-    ) -> str:
-        file_path = pdf_reader.file_path
-
-        if file_path is not None:
-            rag_client.load_pdf(file_path)
-
-        message, list_document_context = rag_client.invoke(message)
-
-        document = fitz.open(file_path)
-        for document_context in list_document_context:
-            text = document_context.page_content
-            page = document_context.metadata['page']
-            document = highlight_text(document, text, page)
-
-        pdf_reader.pdf_document = document
-        return message
-
-    rag_client = RagClient(model_id=model_id, hf_token=hf_token)
-
     with gradio.Blocks() as application:
-        with gradio.Row():
-            with gradio.Column(scale=1):  # Prend 2/3 de la largeur
-                pdf_reader = PDFReader()
-
-            with gradio.Column(scale=2):  # Prend 2/3 de la largeur
-                interface = ChatInterface(
-                    fn=partial(echo, pdf_reader=pdf_reader, rag_client=rag_client),
-
-                    examples=["Quel est le sujet de ce document ?", "Résume moi ce document"],
-                )
+        rag_interface = RagInterface(
+            model_id=model_id,
+            hf_token=hf_token
+        )
 
     application.launch(
         server_name=host,

@@ -1,6 +1,3 @@
-import os
-from functools import partial
-
 import fitz
 import gradio
 import gradio as gr
@@ -25,10 +22,19 @@ class RagInterface:
     """
     history: History
 
-    def __init__(self):
+    rag_client: RagClient
+    pdf_reader: PDFReader
+    chat_interface: ChatInterface
+
+    def __init__(
+            self,
+            model_id: str,
+            hf_token: str,
+            activate_gradio_events: bool = True
+    ):
         self.rag_client = RagClient(
-            model_id="mistralai/Mistral-7B-Instruct-v0.3",
-            hf_token=os.environ.get("HF_TOKEN"),
+            model_id=model_id,
+            hf_token=hf_token,
         )
 
         with gradio.Blocks() as application:
@@ -37,15 +43,9 @@ class RagInterface:
                     self.pdf_reader = PDFReader()
 
                 with gradio.Column(scale=2):  # Prend 2/3 de la largeur
-                    self.chat_interface = ChatInterface()
+                    self.chat_interface = ChatInterface(activate_gradio_events=False)
 
             self.application = application
-
-        # self.chat_interface.input.submit(
-        #     fn=self.echo,
-        #     inputs=[self.chat_interface.input],
-        #     outputs=[self.chat_interface.chat, self.pdf_reader.pdf_display]
-        # )
 
         self.chat_interface.submit.click(
             fn=self.echo,
@@ -53,43 +53,23 @@ class RagInterface:
             outputs=[self.chat_interface.input, self.chat_interface.chat, self.pdf_reader.pdf_display, self.pdf_reader.counter]
         )
 
-        # self.chat_interface.input.submit(
-        #     fn=partial(self.pdf_reader.navigate_pdf, direction=0),
-        #     outputs=[self.pdf_reader.pdf_display, self.pdf_reader.counter]
-        # )
-
-        ## self.chat_interface.submit.click(
-        ##     fn=partial(self.pdf_reader.navigate_pdf, direction=0),
-        ##     outputs=[self.pdf_reader.pdf_display, self.pdf_reader.counter]
-        ## )
-
-
-    def echo(self, message: str) -> (str, History):
-        # Update the history
-        # Update the history
-        chat_message = ChatMessage(
-            "user",
-            message,
-        )
+    def echo(self, message: str) -> (str, History, fitz.Pixmap, str):
+        """ Update the history, return the response in string format and update the PDF display. """
+        user_message = ChatMessage("user", message)
+        assistant_message = ChatMessage("assistant", self.invoke(message))
 
         # Return string generation LLM
-        self.chat_interface.history.append(chat_message)
-
-        chat_message = ChatMessage(
-            "assistant",
-            self.invoke(message),
-        )
-
-        # Return string generation LLM
-        self.chat_interface.history.append(chat_message)
+        self.chat_interface.history.append(user_message)
+        self.chat_interface.history.append(assistant_message)
 
         # Update the PDF display (highlight text)
         image, counter_update = self.pdf_reader.navigate_pdf(direction=0)
 
-        # Clear input, return history
+        # Clear input, return history, update PDF display (image, counter)
         return "", self.chat_interface.history, image, counter_update
 
     def invoke(self, message: str) -> str:
+        """ Invoke the RAG model and highlight the text in the PDF document. """
         file_path = self.pdf_reader.file_path
 
         if file_path is not None:
@@ -109,6 +89,7 @@ class RagInterface:
 
 if __name__ == "__main__":
     load_dotenv(ENV_PATH)
+
     with gr.Blocks() as application:
         RagInterface()
 

@@ -12,9 +12,20 @@ class ChatInterface:
     function must just return the response in string format. This class
     return the response in string format and update the PDF display.
     """
+    application: gr.Blocks
+
     history: History
 
-    def __init__(self):
+    chat: gr.Chatbot
+    input: gr.Textbox
+    submit: gr.Button
+    examples: gr.Examples
+
+    retry_button: gr.Button
+    undo_button: gr.Button
+    clear_button: gr.Button
+
+    def __init__(self, activate_gradio_events: bool = True):
         self.history = []
 
         with gr.Blocks() as application:
@@ -39,17 +50,20 @@ class ChatInterface:
                     ["What is the capital of Italy?"],
                 ], self.input, self.input)
 
-                ## self.input.submit(
-                ##     fn=self.echo,
-                ##     inputs=[self.input],
-                ##     outputs=[self.input, self.chat]
-                ## )
+            self.application = application
 
-                ## self.submit.click(
-                ##     fn=self.echo,
-                ##     inputs=[self.input],
-                ##     outputs=[self.input, self.chat]
-                ## )
+            if activate_gradio_events:
+                self.input.submit(
+                    fn=self.echo,
+                    inputs=[self.input],
+                    outputs=[self.input, self.chat]
+                )
+
+                self.submit.click(
+                    fn=self.echo,
+                    inputs=[self.input],
+                    outputs=[self.input, self.chat]
+                )
 
         self.application = application
 
