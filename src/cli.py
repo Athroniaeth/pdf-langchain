@@ -27,11 +27,20 @@ class Level(StrEnum):
     CRITICAL = "CRITICAL"
 
 
+def set_logging_level(logging_name: str, logging_level: Level) -> None:
+    """ Set the logging level. """
+    _logging_level = logging.getLevelName(logging_level)
+    logging.getLogger('root').setLevel(_logging_level)
+    logging.info(f"Logging level of '{logging_name}': {_logging_level}")
+
+
 @cli.callback()
 def callback(
         ctx: typer.Context,
         hf_token: str = typer.Option(None, envvar="HF_TOKEN", help="Access token for Hugging Face API."),
         logging_level: Level = typer.Option(Level.INFO, help="Log level for application logs."),
+        logging_level_hf: Level = typer.Option(Level.INFO, help="Log level for Hugging Face logs."),
+        logging_level_other: Level = typer.Option(Level.WARNING, help="Log level for other logs (urllib3, httpcore, ChromaDB)."),
 ):
     """
     Initialize the CLI application context.
@@ -48,13 +57,18 @@ def callback(
         SimpleNamespace: Object containing application parameters.
     """
     # Set the logging level for the application
-    _logging_level = logging.getLevelName(logging_level)
-    logging.getLogger('root').setLevel(_logging_level)
-    logging.info(f"Logging level : {logging_level}")
+    set_logging_level("root", logging_level)
+    set_logging_level('transformers', logging_level_other)
 
-    # Set the logging level for the httpx library
-    httpx_logger = logging.getLogger('httpx')
-    httpx_logger.setLevel(logging.WARNING)
+    set_logging_level('httpx', logging_level_other)
+    set_logging_level('urlib3', logging_level_other)
+    set_logging_level('httpcore', logging_level_other)
+    set_logging_level('Chromadb', logging_level_other)
+
+    if logging_level_hf:
+        _logging_level_hf = logging.getLevelName(logging_level_hf)
+        logging.getLogger('transformers').setLevel(_logging_level_hf)
+        logging.info(f"Logging level for Hugging Face : {logging_level_hf}")
 
     if hf_token is None:
         logging.exception("Missing Hugging Face token; pass --hf-token or set env[HF_TOKEN]")
@@ -62,7 +76,7 @@ def callback(
 
     ctx.obj = SimpleNamespace(
         hf_token=hf_token,
-        logging_level=_logging_level
+        logging_level=logging_level
     )
 
 

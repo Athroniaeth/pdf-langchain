@@ -4,8 +4,8 @@ import time
 from functools import lru_cache, wraps
 from typing import Optional, Dict
 
-from langchain_community.llms.huggingface_endpoint import HuggingFaceEndpoint
 from langchain_core.language_models import BaseLLM
+from langchain_huggingface import HuggingFaceEndpoint
 
 
 @lru_cache(maxsize=1)

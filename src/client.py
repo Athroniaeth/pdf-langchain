@@ -7,16 +7,16 @@ from langchain import hub
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.history_aware_retriever import create_history_aware_retriever
 from langchain.chains.retrieval import create_retrieval_chain
+from langchain_chroma import Chroma
 from langchain_community.chat_message_histories.in_memory import ChatMessageHistory
 from langchain_community.document_loaders import PyMuPDFLoader
-from langchain_community.embeddings.huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores.chroma import Chroma
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from src._typing import History
-from src.models import get_llm_model, log_inference
+from src.models import get_llm_model
 
 store = {}
 
