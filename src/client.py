@@ -22,9 +22,8 @@ store = {}
 
 
 def get_by_session_id(session_id: str) -> BaseChatMessageHistory:
-    if session_id not in store:
-        store[session_id] = ChatMessageHistory()
-    return store[session_id]
+    # Todo : Delete RunnableWithMessageHistory and remove it (history handle by gradio)
+    return ChatMessageHistory()
 
 
 class RagClient:
@@ -39,6 +38,7 @@ class RagClient:
             models_kwargs: dict = None,
             search_kwargs: dict = None,
     ):
+        self.pipeline = None
         self.id = uuid.uuid4()
 
         if models_kwargs is None:

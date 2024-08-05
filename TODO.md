@@ -1,4 +1,4 @@
-- Supprimer la mémoire côté LangChain
+- ~~Supprimer la mémoire côté LangChain~~
 - Crée des fichiers de configurations pour les interfaces
 - Refactoriser les composants gradio, simplifier les fonctions, rendre les composants modulaires
 - Supprimer le logging des autres librairies si voulu (différence entre les logs d'application et des librairies)
