@@ -36,7 +36,6 @@ class PDFReader:
 
     prev_button: gr.Button
     next_button: gr.Button
-
     reset_button: gr.Button
 
     def __init__(
@@ -56,16 +55,18 @@ class PDFReader:
         self.pdf_document = None
         self.current_page = 0
 
-        with gr.Column(variant="compact"):
-            self.file_input = gr.File(label=self.label, type="filepath", file_types=[".pdf"])
-            self.pdf_display = gr.Image(visible=False, height=self.initial_height)
-            self.counter = gr.Textbox(show_label=False, max_lines=1, interactive=False, value="No PDF loaded.")
+        # class input must have text-align: center;
+        with gr.Blocks() as self.interface:
+            with gr.Column(variant="compact"):
+                self.file_input = gr.File(label=self.label, type="filepath", file_types=[".pdf"])
+                self.pdf_display = gr.Image(visible=False, height=self.initial_height)
+                self.counter = gr.Textbox(show_label=False, max_lines=1, interactive=False, value="No PDF loaded.", elem_id="counter")
 
-            with gr.Row():
-                self.prev_button = gr.Button("⬅️")
-                self.next_button = gr.Button("➡️")
+                with gr.Row():
+                    self.prev_button = gr.Button("⬅️ Prev Page")
+                    self.next_button = gr.Button("➡️ Next Page")
 
-            self.reset_button = gr.Button("❌", variant="primary")
+                self.reset_button = gr.Button("🗑️ Clear PDF")
 
         if activate_gradio_events:
             self.file_input.change(

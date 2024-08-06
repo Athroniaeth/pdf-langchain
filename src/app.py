@@ -35,7 +35,13 @@ def app(
     """
     logging.debug("Starting the Gradio application")
 
-    with gradio.Blocks() as application:
+    css = \
+        """
+        #counter input { text-align: center; }
+        .lg { font-size: calc(var(--button-large-text-size) - 1px); }
+        """
+
+    with gradio.Blocks(css=css) as application:
         rag_interface = RagInterface(
             model_id=model_id,
             hf_token=hf_token
