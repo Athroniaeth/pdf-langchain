@@ -49,6 +49,10 @@ class RagInterface(ChatInterface):
 
             self.application = application
 
+    @property
+    def file_path(self):
+        return self.pdf_reader.file_path
+
     @overrides(check_signature=False)
     def bind_events(self):
         """ Bind the events for the chat interface. """
@@ -64,6 +68,16 @@ class RagInterface(ChatInterface):
             inputs=[self.input],
             outputs=[self.input, self.chat, self.pdf_reader.pdf_display, self.pdf_reader.counter]
         )
+
+        self.pdf_reader.file_input.change(
+            fn=self.load_document,
+        )
+
+    def load_document(self):
+        """ Load the PDF document to the RAG client. """
+
+        if self.file_path is not None:
+            self.rag_client.load_pdf(self.file_path)
 
     @overrides(check_signature=False)
     def echo(self, message: str) -> (str, History, fitz.Pixmap, str):
@@ -84,18 +98,11 @@ class RagInterface(ChatInterface):
 
     def invoke(self, message: str) -> str:
         """ Invoke the RAG model and highlight the text in the PDF document. """
-
-        file_path = self.pdf_reader.file_path
-
-        if file_path is not None:
-            self.rag_client.load_pdf(file_path)
-
+        document = None
         message, list_document_context = self.rag_client.invoke(message)
 
-        if file_path is None:
-            document = None
-        else:
-            document = fitz.open(file_path)
+        if self.file_path is not None:
+            document = fitz.open(self.file_path)
 
             for document_context in list_document_context:
                 text = document_context.page_content  # noqa nique tamre
