@@ -23,7 +23,6 @@ class RagInterface(ChatInterface):
     """
     rag_client: RagClient
     pdf_reader: PDFReader
-    chat_interface: ChatInterface
 
     def __init__(
             self,
@@ -71,13 +70,26 @@ class RagInterface(ChatInterface):
 
         self.pdf_reader.file_input.change(
             fn=self.load_document,
+            inputs=[self.pdf_reader.file_input],
+            outputs=[self.pdf_reader.pdf_display]  # Show loading to the user
         )
 
-    def load_document(self):
+    def load_document(self, file_path: str):
         """ Load the PDF document to the RAG client. """
 
-        if self.file_path is not None:
-            self.rag_client.load_pdf(self.file_path)
+        # Message to user to show that the PDF (db vector) is loading
+        gr.Info("RAG is loading the PDF document...")
+
+        if file_path is None:
+            self.rag_client.clean_pdf()
+        else:
+            self.rag_client.load_pdf(file_path)
+
+        # Message to user to show that the PDF (db vector) is loaded
+        gr.Info("RAG successfully loaded the PDF document.")
+
+        # Show loading to the user
+        return gr.update()
 
     @overrides(check_signature=False)
     def echo(self, message: str) -> (str, History, fitz.Pixmap, str):
