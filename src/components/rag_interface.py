@@ -7,7 +7,7 @@ from overrides import overrides
 
 from src import ENV_PATH
 from src._pymupdf import highlight_text
-from src._typing import History
+from src._typing import History, Examples
 from src.client import RagClient
 from src.components import PDFReader
 from src.components.chat_interface import ChatInterface
@@ -28,7 +28,15 @@ class RagInterface(ChatInterface):
             self,
             model_id: str,
             hf_token: str,
+
+            examples: Examples = None,
     ):
+        if examples is None:
+            examples = [
+                ["What is the main idea of the document?"],
+                ["Can you summarize the document?"],
+            ]
+
         self.rag_client = RagClient(
             model_id=model_id,
             hf_token=hf_token,
@@ -40,7 +48,7 @@ class RagInterface(ChatInterface):
                     self.pdf_reader = PDFReader()
 
                 with gradio.Column(scale=2):  # Prend 2/3 de la largeur
-                    super().__init__()
+                    super().__init__(examples=examples)
                     super().bind_events(
                         activate_chat_events=False,
                         activate_button_events=True,

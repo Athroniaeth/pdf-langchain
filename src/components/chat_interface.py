@@ -1,7 +1,9 @@
+from typing import List
+
 import gradio as gr
 from gradio import ChatMessage
 
-from src._typing import History
+from src._typing import History, Examples
 
 
 class ChatInterface:
@@ -25,8 +27,15 @@ class ChatInterface:
     undo_button: gr.Button
     clear_button: gr.Button
 
-    def __init__(self):
+    def __init__(self, examples: Examples = None):
         self.history = []
+
+        if examples is None:
+            examples = [
+                ["What is the capital of France?"],
+                ["What is the capital of Spain?"],
+                ["What is the capital of Italy?"],
+            ]
 
         with gr.Blocks() as application:
             with gr.Column(variant="compact"):
@@ -44,11 +53,7 @@ class ChatInterface:
                     self.submit = gr.Button("Submit", variant="primary", scale=1)
 
                 # Examples of messages to help the user
-                self.examples = gr.Examples([
-                    ["What is the capital of France?"],
-                    ["What is the capital of Spain?"],
-                    ["What is the capital of Italy?"],
-                ], self.input, self.input)
+                self.examples = gr.Examples(examples, self.input, self.input)
 
             self.application = application
 
@@ -89,19 +94,26 @@ class ChatInterface:
             )
 
     def retry(self) -> (str, History):
+        """ Retry the last message from the user. """
+
         if len(self.history) > 1:
             # Get the last user message
             last_user_message = self.history[-2].content
+
+            # Restart the inference with the last user message
+            message, history = self.echo(last_user_message)  # noqa F841
 
             # Remove the last two messages (assistant and user)
             self.undo()
 
             # Retry the last message (user)
-            return self.echo(last_user_message)
+            return "", self.history
 
         return "", self.history
 
     def undo(self) -> (str, History):
+        """ Undo the last message from the user. """
+
         if len(self.history) != 0:
             # Remove the last two messages (assistant and user)
             self.history.pop()
@@ -110,6 +122,8 @@ class ChatInterface:
         return "", self.history
 
     def clear(self) -> (str, History):
+        """ Clear the chat history. """
+
         self.history.clear()
         return "", self.history
 
