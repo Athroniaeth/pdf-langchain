@@ -50,12 +50,14 @@ def app(
         rag_interface.bind_events()
 
     application.launch(
+        debug=debug,
         server_name=host,
         server_port=port,
-        debug=debug,
 
         ssl_keyfile=ssl_keyfile,
         ssl_certfile=ssl_certfile,
+
+        max_file_size="1mb"
     )
 
 
