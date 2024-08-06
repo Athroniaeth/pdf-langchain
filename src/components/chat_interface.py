@@ -39,7 +39,7 @@ class ChatInterface:
 
         with gr.Blocks() as application:
             with gr.Column(variant="compact"):
-                self.chat = gr.Chatbot(type="messages", show_copy_button=True)
+                self.chat = gr.Chatbot(type="messages")
 
                 # Retry button, Undo button and Clear button
                 with gr.Row():

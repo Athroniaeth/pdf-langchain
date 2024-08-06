@@ -126,7 +126,7 @@ def get_info_environment(
         case Environment.PRODUCTION:
             list_raises = []
             host = "0.0.0.0"
-            port = 443
+            port = 7860
 
             if not ssl_keyfile:
                 list_raises.append(EnvironmentError("'SSL_KEYFILE' environment variable not set"))

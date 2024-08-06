@@ -50,6 +50,8 @@ def app(
         rag_interface.bind_events()
 
     application.launch(
+        ssl_verify=False,
+
         debug=debug,
         server_name=host,
         server_port=port,
