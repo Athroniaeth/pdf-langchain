@@ -42,19 +42,16 @@ class RagInterface(ChatInterface):
             hf_token=hf_token,
         )
 
-        with gradio.Blocks() as application:
-            with gradio.Row():
-                with gradio.Column(scale=1):  # Prend 2/3 de la largeur
-                    self.pdf_reader = PDFReader()
+        with gradio.Row():
+            with gradio.Column(scale=1):  # Prend 2/3 de la largeur
+                self.pdf_reader = PDFReader()
 
-                with gradio.Column(scale=2):  # Prend 2/3 de la largeur
-                    super().__init__(examples=examples)
-                    super().bind_events(
-                        activate_chat_events=False,
-                        activate_button_events=True,
-                    )
-
-            self.application = application
+            with gradio.Column(scale=2):  # Prend 2/3 de la largeur
+                super().__init__(examples=examples)
+                super().bind_events(
+                    activate_chat_events=False,
+                    activate_button_events=True,
+                )
 
     @property
     def file_path(self):
