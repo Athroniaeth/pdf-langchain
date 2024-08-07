@@ -105,14 +105,14 @@ class RagInterface(ChatInterface):
         assistant_message = ChatMessage("assistant", self.invoke(message))
 
         # Append the messages to the history
-        self.history.append(user_message)
-        self.history.append(assistant_message)
+        self.state_history.append(user_message)
+        self.state_history.append(assistant_message)
 
         # Update the PDF display (highlight text)
         image, counter_update = self.pdf_reader.navigate_pdf(direction=0)
 
         # Clear input, return history, update PDF display (image, counter)
-        return "", self.history, image, counter_update
+        return "", self.state_history, image, counter_update
 
     def invoke(self, message: str) -> str:
         """ Invoke the RAG model and highlight the text in the PDF document. """

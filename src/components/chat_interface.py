@@ -1,5 +1,3 @@
-from typing import List
-
 import gradio as gr
 from gradio import ChatMessage
 
@@ -10,13 +8,11 @@ class ChatInterface:
     """
     Chat interface for the Gradio application.
     
-    gr.ChatInterface don't allow to return gr.update, because 'echo'
-    function must just return the response in string format. This class
-    return the response in string format and update the PDF display.
+    gr.ChatInterface don't allow to return arbitrary outputs, because 'echo'
+    function must just return the response in string format. This class manage
+    the history of the chat and return the arbitrary outputs.
     """
-    application: gr.Blocks
-
-    history: History
+    state_history: gr.State  # History
 
     chat: gr.Chatbot
     input: gr.Textbox
@@ -28,7 +24,7 @@ class ChatInterface:
     clear_button: gr.Button
 
     def __init__(self, examples: Examples = None):
-        self.history = []
+        self.state_history = gr.State([])
 
         if examples is None:
             examples = [
@@ -37,25 +33,22 @@ class ChatInterface:
                 ["What is the capital of Italy?"],
             ]
 
-        with gr.Blocks() as application:
-            with gr.Column(variant="compact"):
-                self.chat = gr.Chatbot(type="messages")
+        with gr.Column(variant="compact"):
+            self.chat = gr.Chatbot(type="messages")
 
-                # Retry button, Undo button and Clear button
-                with gr.Row():
-                    self.retry_button = gr.Button("🔄 Retry", variant="secondary")
-                    self.undo_button = gr.Button("↩️ Undo", variant="secondary")
-                    self.clear_button = gr.Button("🗑️ Clear", variant="secondary")
+            # Retry button, Undo button and Clear button
+            with gr.Row():
+                self.retry_button = gr.Button("🔄 Retry", variant="secondary")
+                self.undo_button = gr.Button("↩️ Undo", variant="secondary")
+                self.clear_button = gr.Button("🗑️ Clear", variant="secondary")
 
-                # Input text box for the user to type the message
-                with gr.Row(variant="compact"):
-                    self.input = gr.Textbox(container=False, scale=2, lines=1, max_lines=1, show_label=False, placeholder="Type your message here...", interactive=True)
-                    self.submit = gr.Button("Submit", variant="primary", scale=1)
+            # Input text box for the user to type the message
+            with gr.Row(variant="compact"):
+                self.input = gr.Textbox(container=False, scale=2, lines=1, max_lines=1, show_label=False, placeholder="Type your message here...", interactive=True)
+                self.submit = gr.Button("Submit", variant="primary", scale=1)
 
-                # Examples of messages to help the user
-                self.examples = gr.Examples(examples, self.input, self.input)
-
-            self.application = application
+            # Examples of messages to help the user
+            self.examples = gr.Examples(examples, self.input, self.input)
 
     def bind_events(
             self,
@@ -67,91 +60,200 @@ class ChatInterface:
         if activate_chat_events:
             self.input.submit(
                 fn=self.echo,
-                inputs=[self.input],
-                outputs=[self.input, self.chat]
+                inputs=[self.input, self.state_history],
+                outputs=[self.state_history, self.input, self.chat]
             )
 
             self.submit.click(
                 fn=self.echo,
-                inputs=[self.input],
-                outputs=[self.input, self.chat]
+                inputs=[self.input, self.state_history],
+                outputs=[self.state_history, self.input, self.chat]
             )
 
         if activate_button_events:
             self.retry_button.click(
                 fn=self.retry,
-                outputs=[self.input, self.chat]
+                inputs=[self.state_history],
+                outputs=[self.state_history, self.chat],
             )
 
             self.undo_button.click(
                 fn=self.undo,
-                outputs=[self.input, self.chat]
+                inputs=[self.state_history],
+                outputs=[self.state_history, self.chat],
             )
 
             self.clear_button.click(
                 fn=self.clear,
-                outputs=[self.input, self.chat]
+                inputs=[self.state_history],
+                outputs=[self.state_history, self.chat],
             )
 
-    def retry(self) -> (str, History):
-        """ Retry the last message from the user. """
+    @staticmethod
+    def retry(
+            history: History
+    ) -> (
+            History,
+            gr.update,
+    ):
+        """
+        Retry the last message from the user.
 
-        if len(self.history) > 1:
+        Args:
+            history (History): The chat history.
+
+        Returns:
+            tuple: The updated history and the chatbot component.
+            - History: The updated chat history.
+            - gr.update: Update for the chatbot component.
+        """
+
+        if len(history) > 1:
             # Get the last user message
-            last_user_message = self.history[-2].content
+            message = history[-2].content
 
             # Restart the inference with the last user message
-            message, history = self.echo(last_user_message)  # noqa F841
+            response = echo(message, history)
 
-            # Remove the last two messages (assistant and user)
-            self.undo()
+            # Replace the last assistant message with the new response
+            history[-1] = ChatMessage("assistant", response)
 
             # Retry the last message (user)
-            return "", self.history
+            return history, gr.update(value=history)
 
-        return "", self.history
+        # Alert the user that there is no message to retry
+        gr.Warning("There is no message to retry.")
 
-    def undo(self) -> (str, History):
-        """ Undo the last message from the user. """
+        # No user message or no assistant response (to user message)
+        return history, gr.update(value=history)
 
-        if len(self.history) != 0:
-            # Remove the last two messages (assistant and user)
-            self.history.pop()
-            self.history.pop()
+    @staticmethod
+    def undo(
+            history: History
+    ) -> (
+            History,
+            gr.update,
+    ):
+        """
+        Undo the last message from the user.
 
-        return "", self.history
+        Args:
+            history (History): The chat history.
 
-    def clear(self) -> (str, History):
-        """ Clear the chat history. """
+        Returns:
+            tuple: The updated history and the chatbot component.
+            - History: The updated chat history.
+            - gr.update: Update for the chatbot component.
+        """
 
-        self.history.clear()
-        return "", self.history
+        # Remove the last two messages (assistant and user)
+        if len(history) > 1:
+            history.pop()
+            history.pop()
+        else:
+            # Alert the user that there is no message to undo
+            gr.Warning("There is no message to undo.")
 
-    def echo(self, message: str) -> (str, History):
+        return history, gr.update(value=history)
+
+    @staticmethod
+    def clear(
+            history: History
+    ) -> (
+            History,
+            gr.update,
+    ):
+        """
+        Clear the chat history.
+
+        Args:
+            history (History): The chat history.
+
+        Returns:
+            tuple: The updated history and the chatbot component.
+            - History: The updated chat history.
+            - gr.update: Update for the chatbot component.
+        """
+        history.clear()
+
+        return (
+            history,
+            gr.update(value=history)
+        )
+
+    @staticmethod
+    def echo(
+            message: str,
+            history: History
+    ) -> (
+            History,
+            gr.update,
+            gr.update,
+    ):
+        """
+        Start the chatbot inference and update the chat history.
+
+        Args:
+            message (str): The user message.
+            history (History): The chat history.
+
+        Returns:
+            tuple: A tuple containing the following elements:
+                - History: The updated chat history.
+                - gr.update: Update for the input component.
+                - gr.update: Update for the chatbot component
+
+        """
+        # preprocess the message
+        message = message.strip()
+
+        # Alert the user that there is no message to echo
+        if not message:
+            gr.Warning("There is no message to echo.")
+
+            return (
+                history,
+                gr.update(value=""),
+                gr.update(value=history)
+            )
+
+        # Start inference
+        response = echo(message, history)
+
         # Update the history
         user_message = ChatMessage("user", message)
-        assistant_message = ChatMessage("assistant", "I don't know the answer to that question.")
+        assistant_message = ChatMessage("assistant", response)
 
         # Append the messages to the history
-        self.history.append(user_message)
-        self.history.append(assistant_message)
+        history.append(user_message)
+        history.append(assistant_message)
 
         # Clear input, return history
-        return "", self.history
+        return (
+            # states
+            history,  # history
 
-    def refresh_history(self) -> None:
-        """
-        Refresh the chat history with the new message.
-        """
-        _refresh_history = lambda: gr.update(value=self.history)
-        self.application.load(_refresh_history, outputs=[chat.chat])
+            # components
+            gr.update(value=""),  # input
+            gr.update(value=history)  # chatbot
+        )
+
+
+def echo(message: str, history: History) -> str:
+    """ Fake echo function that returns a response based on the input message. """
+
+    if message == "42":
+        return "The answer to the ultimate question of life, the universe, and everything is 42."
+
+    return "I don't know the answer to that question."
 
 
 if __name__ == "__main__":
     with gr.Blocks() as application:
         chat = ChatInterface()
-
-        # refresh chat attribute with history
-        chat.refresh_history()
+        chat.bind_events(
+            activate_chat_events=True,
+            activate_button_events=True
+        )
 
     application.launch()
