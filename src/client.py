@@ -1,28 +1,20 @@
 import logging
-from typing import List, Tuple
+from typing import List
 
 from fitz import Document
 from langchain import hub
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.retrieval import create_retrieval_chain
 from langchain_chroma import Chroma
-from langchain_community.chat_message_histories.in_memory import ChatMessageHistory
 from langchain_community.document_loaders import PyMuPDFLoader
-from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.language_models import BaseLLM
 from langchain_core.prompts import BasePromptTemplate
 from langchain_core.runnables import Runnable
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+from src._typing import History
 from src.models import get_llm_model
-
-store = {}
-
-
-def get_by_session_id(session_id: str) -> BaseChatMessageHistory:
-    # Todo : Delete RunnableWithMessageHistory and remove it (history handle by gradio)
-    return ChatMessageHistory()
 
 
 class RagClient:
@@ -35,6 +27,8 @@ class RagClient:
     prompt_rag: BasePromptTemplate
     embeddings_model: HuggingFaceEmbeddings
 
+    list_document_context: List[Document]
+
     def __init__(
             self,
             model_id: str,
@@ -45,6 +39,8 @@ class RagClient:
             models_kwargs: dict = None,
             search_kwargs: dict = None,
     ):
+        self.list_document_context = []
+
         if models_kwargs is None:
             models_kwargs = {'max_length': 512}
 
@@ -102,9 +98,35 @@ class RagClient:
 
     def clean_pdf(self):
         if self.db_vector is not None:
-            self.db_vector = Chroma(embedding_function=self.embeddings_model)
+            # https://github.com/langchain-ai/langchain/discussions/9495#discussioncomment-7451042
+            for collection in self.db_vector._client.list_collections():  # noqa
+                ids = collection.get()['ids']
+                if len(ids): collection.delete(ids)
 
-    def invoke(self, query: str) -> Tuple[str, List[Document]]:
+    def invoke(
+            self,
+            message: str,
+            history: History
+    ) -> (
+            str
+    ):
+        # Merge history, and add user message
+        query = ""
+        """
+        for chat_message in history:
+            role = chat_message.role
+            content = chat_message.content
+
+            if role == "user":
+                query += f"User: {content}\n"
+
+            elif role == "assistant":
+                query += f"Assistant: {content}\n"
+
+        query += f"User: {message}\nAssistant:"
+        """
+        query = message
+
         # It's just a joke
         if query == "42":
             return "The answer to the ultimate question of life, the universe, and everything is 42.", []
@@ -115,8 +137,8 @@ class RagClient:
         )
 
         llm_output = pipeline_output["answer"]
-        list_document_context = pipeline_output["context"]
+        self.list_document_context = pipeline_output["context"]
 
         logging.debug(f"Result of llm model :\n\"\"\"\n{llm_output}\n\"\"\"")
 
-        return llm_output, list_document_context
+        return llm_output

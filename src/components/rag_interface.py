@@ -1,9 +1,11 @@
+import os
+from typing import Optional
+
 import fitz
 import gradio
 import gradio as gr
 from dotenv import load_dotenv
 from gradio import ChatMessage
-from overrides import overrides
 
 from src import ENV_PATH
 from src._pymupdf import highlight_text
@@ -13,7 +15,7 @@ from src.components import PDFReader
 from src.components.chat_interface import ChatInterface
 
 
-class RagInterface(ChatInterface):
+class RagInterface:
     """
     Rag interface for the Gradio application.
     
@@ -37,6 +39,7 @@ class RagInterface(ChatInterface):
                 ["Can you summarize the document?"],
             ]
 
+        # Global client for all users, also not gr.State
         self.rag_client = RagClient(
             model_id=model_id,
             hf_token=hf_token,
@@ -48,39 +51,129 @@ class RagInterface(ChatInterface):
                 self.pdf_reader.bind_events()
 
             with gradio.Column(scale=2):  # Prend 2/3 de la largeur
+                self.chat_interface = ChatInterface(
+                    fn=self.rag_client.invoke,
+                    examples=examples
+                )
+                self.chat_interface.bind_events(
+                    activate_chat_events=False,
+                    activate_button_events=True,
+                )
+                """
                 super().__init__(examples=examples)
                 super().bind_events(
                     activate_chat_events=False,
                     activate_button_events=True,
                 )
+                """
 
-    @property
-    def file_path(self):
-        return self.pdf_reader.file_path
-
-    @overrides(check_signature=False)
     def bind_events(self):
         """ Bind the events for the chat interface. """
 
-        self.input.submit(
+        self.chat_interface.input.submit(
             fn=self.echo,
-            inputs=[self.input],
-            outputs=[self.input, self.chat, self.pdf_reader.display, self.pdf_reader.counter]
+            inputs=[
+                self.chat_interface.state_history,
+                self.pdf_reader.state_pdf,
+                self.chat_interface.input
+            ],
+            outputs=[
+                self.chat_interface.state_history,
+                self.pdf_reader.state_pdf,
+
+                self.chat_interface.input,
+                self.chat_interface.chat,
+                self.pdf_reader.display,
+                self.pdf_reader.counter
+            ]
         )
 
-        self.submit.click(
+        self.chat_interface.submit.click(
             fn=self.echo,
-            inputs=[self.input],
-            outputs=[self.input, self.chat, self.pdf_reader.display, self.pdf_reader.counter]
+            inputs=[
+                self.chat_interface.state_history,
+                self.pdf_reader.state_pdf,
+                self.chat_interface.input
+            ],
+            outputs=[
+                self.chat_interface.state_history,
+                self.pdf_reader.state_pdf,
+
+                self.chat_interface.input,
+                self.chat_interface.chat,
+                self.pdf_reader.display,
+                self.pdf_reader.counter
+            ]
         )
 
         self.pdf_reader.file_input.change(
             fn=self.load_document,
             inputs=[self.pdf_reader.file_input],
-            outputs=[self.pdf_reader.display]  # Show loading to the user
+            outputs=[self.pdf_reader.display]
+        )
+        """
+        self.pdf_reader.reset_button.click(
+            fn=self.load_document,
+            inputs=[gr.State(None)],
+            outputs=[self.pdf_reader.display]
+        )
+        """
+    def echo(
+            self,
+            history: History,
+            document: Optional[fitz.Document],
+            message: str,
+    ) -> (
+            History,
+            Optional[fitz.Document],
+            gr.update,  # input
+            gr.update,  # history
+            gr.update,  # image
+            gr.update,  # counter
+    ):
+        """ Update the history, return the response in string format and update the PDF display. """
+
+        # Start inference with the RAG client
+        response = self.rag_client.invoke(message, history)
+        list_document_context = self.rag_client.list_document_context
+
+        # Highlight the context in the PDF document
+        if document is not None:
+            for document_context in list_document_context:
+                text = document_context.page_content  # noqa nique tamre
+                page = document_context.metadata['page']
+                document = highlight_text(document, text, page)
+
+        # Create the chat messages
+        user_message = ChatMessage("user", message)
+        assistant_message = ChatMessage("assistant", response)
+
+        # Append the messages to the history
+        history.append(user_message)
+        history.append(assistant_message)
+
+        # Update the PDF display (highlight text)
+        _, _, update_image, update_label = self.pdf_reader.navigate_pdf(document, 0, 0)
+
+        # Clear input, return history, update PDF display (image, counter)
+        return (
+            # states
+            history,
+            document,
+
+            # updates
+            gr.update(value=""),
+            gr.update(value=history),
+            update_image,
+            update_label
         )
 
-    def load_document(self, file_path: str):
+    def load_document(
+            self,
+            file_path: Optional[str]
+    ) -> (
+        gr.update,
+    ):
         """ Load the PDF document to the RAG client. """
 
         # Message to user to show that the PDF (db vector) is loading
@@ -97,44 +190,15 @@ class RagInterface(ChatInterface):
         # Show loading to the user
         return gr.update()
 
-    @overrides(check_signature=False)
-    def echo(self, message: str) -> (str, History, fitz.Pixmap, str):
-        """ Update the history, return the response in string format and update the PDF display. """
-
-        user_message = ChatMessage("user", message)
-        assistant_message = ChatMessage("assistant", self.invoke(message))
-
-        # Append the messages to the history
-        self.state_history.append(user_message)
-        self.state_history.append(assistant_message)
-
-        # Update the PDF display (highlight text)
-        image, counter_update = self.pdf_reader.navigate_pdf(direction=0)
-
-        # Clear input, return history, update PDF display (image, counter)
-        return "", self.state_history, image, counter_update
-
-    def invoke(self, message: str) -> str:
-        """ Invoke the RAG model and highlight the text in the PDF document. """
-        document = None
-        message, list_document_context = self.rag_client.invoke(message)
-
-        if self.file_path is not None:
-            document = fitz.open(self.file_path)
-
-            for document_context in list_document_context:
-                text = document_context.page_content  # noqa nique tamre
-                page = document_context.metadata['page']
-                document = highlight_text(document, text, page)
-
-        self.pdf_reader.pdf_document = document
-        return message
-
 
 if __name__ == "__main__":
     load_dotenv(ENV_PATH)
 
     with gr.Blocks() as application:
-        RagInterface()
+        rag_interface = RagInterface(
+            model_id="mistralai/Mistral-7B-Instruct-v0.3",
+            hf_token=os.environ["HF_TOKEN"],
+        )
+        rag_interface.bind_events()
 
-    application.launch()
+    application.launch(debug=True)
