@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Callable
 
 from gradio import ChatMessage
 
@@ -7,3 +7,6 @@ History = List[ChatMessage]
 
 """ List of examples for a Gradio Examples component. """
 Examples = List[List[str]]
+
+""" Inference callable for a chatbot. """
+InferenceCallable = Callable[[str, History], str]

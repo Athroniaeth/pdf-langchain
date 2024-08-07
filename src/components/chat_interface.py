@@ -1,7 +1,9 @@
+from typing import Optional
+
 import gradio as gr
 from gradio import ChatMessage
 
-from src._typing import History, Examples
+from src._typing import History, Examples, InferenceCallable
 
 
 class ChatInterface:
@@ -12,6 +14,7 @@ class ChatInterface:
     function must just return the response in string format. This class manage
     the history of the chat and return the arbitrary outputs.
     """
+    fn: InferenceCallable
     state_history: gr.State  # History
 
     chat: gr.Chatbot
@@ -23,8 +26,13 @@ class ChatInterface:
     undo_button: gr.Button
     clear_button: gr.Button
 
-    def __init__(self, examples: Examples = None):
-        self.state_history = gr.State([])
+    def __init__(
+            self,
+            fn: Optional[InferenceCallable] = None,
+            examples: Optional[Examples] = None
+    ):
+        if fn is None:
+            fn = lambda message, history: message
 
         if examples is None:
             examples = [
@@ -32,6 +40,9 @@ class ChatInterface:
                 ["What is the capital of Spain?"],
                 ["What is the capital of Italy?"],
             ]
+
+        self.fn = fn
+        self.state_history = gr.State([])
 
         with gr.Column(variant="compact"):
             self.chat = gr.Chatbot(type="messages")
@@ -89,8 +100,8 @@ class ChatInterface:
                 outputs=[self.state_history, self.chat],
             )
 
-    @staticmethod
     def retry(
+            self,
             history: History
     ) -> (
             History,
@@ -113,7 +124,7 @@ class ChatInterface:
             message = history[-2].content
 
             # Restart the inference with the last user message
-            response = echo(message, history)
+            response = self.fn(message, history)
 
             # Replace the last assistant message with the new response
             history[-1] = ChatMessage("assistant", response)
@@ -181,8 +192,8 @@ class ChatInterface:
             gr.update(value=history)
         )
 
-    @staticmethod
     def echo(
+            self,
             message: str,
             history: History
     ) -> (
@@ -218,7 +229,7 @@ class ChatInterface:
             )
 
         # Start inference
-        response = echo(message, history)
+        response = self.fn(message, history)
 
         # Update the history
         user_message = ChatMessage("user", message)
@@ -237,15 +248,6 @@ class ChatInterface:
             gr.update(value=""),  # input
             gr.update(value=history)  # chatbot
         )
-
-
-def echo(message: str, history: History) -> str:
-    """ Fake echo function that returns a response based on the input message. """
-
-    if message == "42":
-        return "The answer to the ultimate question of life, the universe, and everything is 42."
-
-    return "I don't know the answer to that question."
 
 
 if __name__ == "__main__":
