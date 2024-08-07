@@ -12,6 +12,7 @@ from langchain_core.language_models import BaseLLM
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+from src import DATABASE_PATH
 from src._typing import History
 from src.models import get_llm_model
 
@@ -71,7 +72,7 @@ class RagClient:
         user_chroma_client = Chroma(
             embedding_function=self.embeddings_model,
             collection_name=f"{user_key}",
-            persist_directory="db/"
+            persist_directory=f'{DATABASE_PATH.absolute()}'
         )
         return user_chroma_client
 
