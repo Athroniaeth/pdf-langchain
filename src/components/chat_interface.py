@@ -63,37 +63,44 @@ class ChatInterface:
 
     def bind_events(
             self,
-            activate_chat_events: bool = True,
-            activate_button_events: bool = True,
+            activate_chat_input: bool = True,
+            activate_chat_submit: bool = True,
+
+            activate_button_retry: bool = True,
+            activate_button_undo: bool = True,
+            activate_button_clear: bool = True,
     ):
         """ Bind the events for the chat interface. """
 
-        if activate_chat_events:
+        if activate_chat_input:
             self.input.submit(
                 fn=self.echo,
                 inputs=[self.input, self.state_history],
                 outputs=[self.state_history, self.input, self.chat]
             )
 
+        if activate_chat_submit:
             self.submit.click(
                 fn=self.echo,
                 inputs=[self.input, self.state_history],
                 outputs=[self.state_history, self.input, self.chat]
             )
 
-        if activate_button_events:
+        if activate_button_retry:
             self.retry_button.click(
                 fn=self.retry,
                 inputs=[self.state_history],
                 outputs=[self.state_history, self.chat],
             )
 
+        if activate_button_undo:
             self.undo_button.click(
                 fn=self.undo,
                 inputs=[self.state_history],
                 outputs=[self.state_history, self.chat],
             )
 
+        if activate_button_clear:
             self.clear_button.click(
                 fn=self.clear,
                 inputs=[self.state_history],
