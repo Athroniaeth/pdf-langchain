@@ -45,6 +45,7 @@ class RagInterface(ChatInterface):
         with gradio.Row():
             with gradio.Column(scale=1):  # Prend 2/3 de la largeur
                 self.pdf_reader = PDFReader()
+                self.pdf_reader.bind_events()
 
             with gradio.Column(scale=2):  # Prend 2/3 de la largeur
                 super().__init__(examples=examples)
@@ -64,19 +65,19 @@ class RagInterface(ChatInterface):
         self.input.submit(
             fn=self.echo,
             inputs=[self.input],
-            outputs=[self.input, self.chat, self.pdf_reader.pdf_display, self.pdf_reader.counter]
+            outputs=[self.input, self.chat, self.pdf_reader.display, self.pdf_reader.counter]
         )
 
         self.submit.click(
             fn=self.echo,
             inputs=[self.input],
-            outputs=[self.input, self.chat, self.pdf_reader.pdf_display, self.pdf_reader.counter]
+            outputs=[self.input, self.chat, self.pdf_reader.display, self.pdf_reader.counter]
         )
 
         self.pdf_reader.file_input.change(
             fn=self.load_document,
             inputs=[self.pdf_reader.file_input],
-            outputs=[self.pdf_reader.pdf_display]  # Show loading to the user
+            outputs=[self.pdf_reader.display]  # Show loading to the user
         )
 
     def load_document(self, file_path: str):

@@ -1,8 +1,7 @@
 import io
-from functools import partial
 from typing import Optional
 
-import fitz  # PyMuPDF
+import fitz
 import gradio as gr
 from PIL import Image
 
@@ -18,44 +17,27 @@ class PDFReader:
         - The user can reset the PDF file using the "❌" button.
 
     Args:
-        label (str): The label of the file input.
-        height (int): The height of the PDF display.
-        initial_height (int): The initial height of the PDF display.
+        height (int): The height of the display.
     """
-    height: int
-    initial_height: int
 
-    current_page: gr.State  # int
-    file_path: gr.State  # Optional[str]
-    pdf_document: Optional[fitz.Document]
+    state_pdf: gr.State
+    state_page: gr.State
 
     file_input: gr.File
-    pdf_display: gr.Image
+    display: gr.Image
     counter: gr.Textbox
-
-    prev_button: gr.Button
-    next_button: gr.Button
-    reset_button: gr.Button
 
     def __init__(
             self,
             height: int = 410,
-            initial_height: int = 250,
-            activate_gradio_events: bool = True
     ):
-        self.height = height
-        self.initial_height = initial_height
 
-        self.file_path = gr.State(None)
+        self.state_pdf = gr.State()
+        self.state_page = gr.State()
 
-        # Variables globales pour le document PDF et la page actuelle
-        self.pdf_document = None
-        self.current_page = gr.State(0)
-
-        # class input must have text-align: center;
         with gr.Column(variant="compact"):
             self.file_input = gr.File(label="Upload PDF", type="filepath", file_types=[".pdf"])
-            self.pdf_display = gr.Image(visible=False, height=self.initial_height)
+            self.display = gr.Image(visible=False, height=height)
             self.counter = gr.Textbox(show_label=False, max_lines=1, interactive=False, value="No PDF loaded.", elem_id="counter")
 
             with gr.Row():
@@ -64,89 +46,195 @@ class PDFReader:
 
             self.reset_button = gr.Button("🗑️ Clear PDF")
 
-        if activate_gradio_events:
-            self.file_input.change(
-                fn=self.load_pdf,
-                inputs=[self.file_input],
-                outputs=[self.current_page, self.file_path, self.file_input, self.pdf_display, self.pdf_display, self.counter]
+    def bind_events(self):
+        """ Bind the events for the PDF reader. """
+
+        self.file_input.change(
+            fn=self.load_pdf,
+            inputs=[self.file_input],
+            outputs=[self.state_pdf, self.state_page, self.file_input, self.display, self.counter]
+        )
+
+        self.prev_button.click(
+            fn=self.navigate_pdf,
+            inputs=[self.state_pdf, self.state_page, gr.State(-1)],
+            outputs=[self.state_pdf, self.state_page, self.display, self.counter]
+        )
+
+        self.next_button.click(
+            fn=self.navigate_pdf,
+            inputs=[self.state_pdf, self.state_page, gr.State(1)],
+            outputs=[self.state_pdf, self.state_page, self.display, self.counter]
+        )
+
+        self.reset_button.click(
+            fn=self.reset_pdf,
+            outputs=[self.state_pdf, self.state_page, self.file_input, self.display, self.counter]
+        )
+
+    @staticmethod
+    def load_pdf(
+            file_path: Optional[str]
+    ) -> (
+            Optional[fitz.Document],
+            int,
+            gr.update,
+            gr.update,
+            gr.update
+    ):
+        """
+        Load the PDF file and display the first page.
+
+        Args:
+            file_path (Optional[str]): The path to the PDF file.
+
+        Returns:
+            tuple: A tuple containing the following elements:
+                - Optional[fitz.Document]: The loaded PDF document or None if the file path is not provided.
+                - int: The total number of pages in the PDF document.
+                - gr.update: Update for the PDF document display (Gradio component update).
+                - gr.update: Update for the page number display (Gradio component update).
+                - gr.update: Update for any additional component display or state (Gradio component update).
+        """
+
+        if file_path is None:
+            return (
+                None,  # state_pdf
+                0,  # state_page
+                gr.update(visible=True),  # file_input
+                gr.update(visible=False),  # display
+                gr.update(value="No PDF loaded.")  # counter
             )
 
-            self.prev_button.click(
-                fn=partial(self.navigate_pdf),
-                inputs=[gr.State(-1), self.current_page],
-                outputs=[self.pdf_display, self.counter]
-            )
-            self.next_button.click(
-                fn=self.navigate_pdf,
-                inputs=[gr.State(1), self.current_page],
-                outputs=[self.pdf_display, self.counter]
-            )
+        pdf_document = fitz.open(file_path)
+        image = get_page_image(pdf_document, 0)
+        label = counter_label(pdf_document, 0)
 
-            self.reset_button.click(
-                fn=self.reset_pdf,
-                outputs=[self.current_page, self.file_input, self.pdf_display, self.file_input]
-            )
+        return (
+            pdf_document,  # state_pdf
+            0,  # state_page
+            gr.update(visible=False),  # file_input
+            gr.update(visible=True, value=image),  # display
+            gr.update(value=label)  # counter
+        )
 
-    def load_pdf(self, file_path: Optional[str]):
-        if file_path is not None:
-            self.pdf_document = fitz.open(file_path)
+    @staticmethod
+    def navigate_pdf(
+            state_pdf: Optional[fitz.Document],
+            current_page: int,
+            direction: int
+    ) -> (
+            Optional[fitz.Document],
+            int,
+            gr.update,
+            gr.update
+    ):
+        """
+        Navigate through the pages of the PDF.
+
+        Args:
+            state_pdf (Optional[fitz.Document]): The current PDF document.
+            current_page (int): The current page number.
+            direction (int): The navigation direction (-1 for previous, 1 for next).
+
+        Returns:
+            tuple: A tuple containing the following elements:
+                - Optional[fitz.Document]: The updated PDF document.
+                - int: The updated page number.
+                - gr.update: Update for the PDF document display (Gradio component update).
+                - gr.update: Update for the page number display (Gradio component update).
+        """
+
+        if state_pdf is None:
+            label = counter_label()
 
             return (
-                0,  # gr.State Page number
-                file_path,  # gr.State File path (else shared variable)
+                state_pdf,  # state_pdf
+                0,  # state_page
 
-                gr.update(visible=False),  # File input
-                self.get_page_image(0),  # PDF display
-                gr.update(visible=True, height=self.height),  # PDF display
-                gr.update(value=self.counter_label(0))  # Counter
+                gr.update(visible=False),  # pdf_display
+                gr.update(visible=True, value=label)  # counter
             )
 
-        return (
-            0,  # gr.State Page number
-            file_path,  # gr.State File path (else shared variable)
-            gr.update(visible=True),  # File input
-            gr.update(visible=False),  # PDF display
-            gr.update(visible=False, height=self.initial_height),  # PDF display
-            gr.update(value="No PDF loaded.")  # Counter
-        )
+        max_pages = state_pdf.page_count
+        current_page = max(0, min(current_page + direction, max_pages - 1))
 
-    def get_page_image(self, page_number):
-        page = self.pdf_document.load_page(page_number)
-        pix = page.get_pixmap()
-        img_data = pix.tobytes("png")
-        img = Image.open(io.BytesIO(img_data))
-        return img
-
-    def navigate_pdf(self, direction, current_page):
-        """ Navigate through the pages of the PDF. """
-
-        if self.pdf_document is None:
-            return gr.update(value="No PDF loaded."), gr.update(visible=False)
-
-        num_pages = self.pdf_document.page_count
-        current_page = max(0, min(num_pages - 1, current_page + direction))
+        image = get_page_image(state_pdf, current_page)
+        label = counter_label(state_pdf, current_page)
 
         return (
-            self.get_page_image(current_page),
-            gr.update(value=self.counter_label(current_page), visible=True)
+            state_pdf,  # state_pdf
+            current_page,  # state_page
+
+            gr.update(value=image),  # display
+            gr.update(visible=True, value=label)  # counter
         )
 
-    def reset_pdf(self):
-        self.pdf_document = None
-        return 0, gr.update(value=None, visible=True), gr.update(visible=False), gr.update(visible=True, height=self.initial_height)
+    @staticmethod
+    def reset_pdf() -> (
+            Optional[fitz.Document],
+            int,
+            gr.update,
+            gr.update,
+            gr.update
+    ):
+        """
+        Reset the PDF reader to its initial state.
+
+        Returns:
+            tuple: A tuple containing the following elements:
+                - Optional[fitz.Document]: The updated PDF document.
+                - int: The updated page number.
+                - gr.update: Update for the PDF document display (Gradio component update).
+                - gr.update: Update for the page number display (Gradio component update).
+                - gr.update: Update for any additional component display or state (Gradio component update).
+        """
+        return (
+            None,  # state_pdf
+            0,  # state_page
+
+            gr.update(value=None, visible=True),  # file_input
+            gr.update(value=None, visible=False),  # display
+            gr.update(value="No PDF loaded.")  # counter
+        )
 
 
-    def counter_label(self, current_page):
-        return f"Page {current_page + 1} / {self.pdf_document.page_count}" if self.pdf_document else "No PDF loaded."
+def get_page_image(
+        pdf_document: fitz.Document,
+        page_number: int
+) -> Image:
+    """ Get the image of a page from a PDF document. """
+    page = pdf_document.load_page(page_number)
+    pix = page.get_pixmap()
+    bytes_img = pix.tobytes("png")
+    bytes_io = io.BytesIO(bytes_img)
+    img = Image.open(bytes_io)
+    return img
+
+
+def counter_label(
+        pdf_document: Optional[fitz.Document] = None,
+        current_page: Optional[int] = None
+) -> str:
+    """ Get the counter label for the display. """
+    if pdf_document is None:
+        return "No PDF loaded."
+
+    if current_page is None:
+        return f"Page 1 / {pdf_document.page_count}"
+
+    # pdf_document & current_page are not None
+    return f"Page {current_page + 1} / {pdf_document.page_count}"
 
 
 if __name__ == "__main__":
     with gr.Blocks() as demo:
         with gr.Row():
-            with gr.Column(scale=1):  # Prend 2/3 de la largeur
+            with gr.Column(scale=1):
                 pdf_reader = PDFReader()
+                pdf_reader.bind_events()
 
-            with gr.Column(scale=2):  # Prend 2/3 de la largeur
+            with gr.Column(scale=2):
                 gr.Markdown("")
 
     demo.launch()
