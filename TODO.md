@@ -3,9 +3,18 @@
 - Refactoriser les composants gradio, simplifier les fonctions, rendre les composants modulaires
 - ~~Supprimer le logging des autres librairies si voulu (différence entre les logs d'application et des librairies)~~
 - ~~Réparer l'actualisation des PDFs (highlight text)~~
-- Liée le bouton SUBMIT et l'input text de l'interface chat (et leurs echo)
+- ~~Liée le bouton SUBMIT et l'input text de l'interface chat (et leurs echo)~~
 - ~~Supprimer tous les warnings de langchain (mauvaise importation, depreciate en 0.4)~~
 - ~~Mettre les fonctions Retry, Delete, Undo dans le chat interface~~
 - ~~Pas d'erreur quand aucun document n'est fournit au RAG~~
 - Permettre de mettre tous le document en contexte
+- Crée une fonction de template (fusion de l'historique et de la requester utilisateur)
+- Crée une automatisation (avec Airflow ou un Thread au lancement du serveur) pour supprimer les db_vector
+  - Spécifier dans le .env le temps de vie des db_vector
+  - Spécifier dans le .env le chemin des db_vector (a la place de l'avoir en variable globale, cela permet de viser des stockages attachés par exemple)
+- Crée un système de log complet (savoir qui, quand ce connecte, utilise le service, stockage des logs, etc...)
+- Ajouter les outils de BP (lint, CI/CD, formatage, coverage, etc...)
+- Crée un système de test complet (unitaire, intégration, fonctionnel, etc...)
+- Crée un système de monitoring (nombre de requête, temps de réponse, etc...)
+- Crée un Dockerfile pour le déploiement de l'application
 - ~~Crée la bdd de vecteur lors du chargement du PDF, pas lors de l'inférence~~
