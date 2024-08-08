@@ -67,3 +67,35 @@ the following command:
 ```bash
 python src
 ```
+
+## Docker
+
+To build the Docker image, you can run the following command:
+
+```bash
+docker build -t chat_pdf .
+```
+
+To run the Docker container, you can use the following command:
+
+```bash
+docker run -p 7860:7860 chat_pdf
+```
+
+For debugging purposes, you can run the following command:
+
+```bash
+docker run -it -p 7860:7860 chat_pdf /bin/bash
+```
+
+For deleting all Docker containers, you can use the following command:
+
+```bash
+docker rm -f $(docker ps -a -q)
+```
+
+For deleting all Docker images, you can use the following command:
+
+```bash
+docker rmi -f $(docker images -q)
+```
