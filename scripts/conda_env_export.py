@@ -61,6 +61,9 @@ def export_conda_environment(env_name: str, output_path: str = "environment.yml"
     pip_result = run_command(pip_command)
     pip_dependencies = list(filter(None, pip_result.split('\n')))
 
+    # Supprime le versionning des dépendances de pip
+    pip_dependencies = [re.sub(r'==.*', '', dep) for dep in pip_dependencies]
+
     if not env_data.get('dependencies'):
         env_data['dependencies'] = []
 
