@@ -7,15 +7,13 @@ from src.components.rag_interface import RagInterface
 
 
 def app(
-        model_id: str,
-        hf_token: str,
-
-        host: str = "127.0.0.1",
-        port: int = 7860,
-        debug: bool = False,
-
-        ssl_keyfile: Optional[str] = None,
-        ssl_certfile: Optional[str] = None,
+    model_id: str,
+    hf_token: str,
+    host: str = "127.0.0.1",
+    port: int = 7860,
+    debug: bool = False,
+    ssl_keyfile: Optional[str] = None,
+    ssl_certfile: Optional[str] = None,
 ):
     """
     Main function to run Gradio application.
@@ -35,32 +33,17 @@ def app(
     """
     logging.debug("Starting the Gradio application")
 
-    css = \
-        """
+    css = """
         #counter input { text-align: center; }
         .lg { font-size: calc(var(--button-large-text-size) - 1px); }
         """
 
     with gradio.Blocks(css=css) as application:
-        rag_interface = RagInterface(
-            model_id=model_id,
-            hf_token=hf_token
-        )
+        rag_interface = RagInterface(model_id=model_id, hf_token=hf_token)
 
         rag_interface.bind_events()
 
-    application.launch(
-        ssl_verify=False,
-
-        debug=debug,
-        server_name=host,
-        server_port=port,
-
-        ssl_keyfile=ssl_keyfile,
-        ssl_certfile=ssl_certfile,
-
-        max_file_size="1mb"
-    )
+    application.launch(ssl_verify=False, debug=debug, server_name=host, server_port=port, ssl_keyfile=ssl_keyfile, ssl_certfile=ssl_certfile, max_file_size="1mb")
 
 
 if __name__ == "__main__":

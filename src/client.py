@@ -58,34 +58,26 @@ class RagClient:
         embeddings_model (HuggingFaceEmbeddings): The embeddings model.
         prompt_rag (hub): The prompt for RAG model.
     """
+
     llm_model: BaseLLM
     embeddings_model: HuggingFaceEmbeddings
 
     def __init__(
-            self,
-            model_id: str,
-            hf_token: str,
-            id_prompt_rag: str = "athroniaeth/rag-prompt-mistral-custom-2",
-            models_kwargs: dict = None,
+        self,
+        model_id: str,
+        hf_token: str,
+        id_prompt_rag: str = "athroniaeth/rag-prompt-mistral-custom-2",
+        models_kwargs: dict = None,
     ):
         if models_kwargs is None:
-            models_kwargs = {'max_length': 512}
+            models_kwargs = {"max_length": 512}
 
-        self.llm_model = get_llm_model(
-            model_id=model_id,
-            hf_token=hf_token,
-            max_new_tokens=512,
-            **models_kwargs
-        )
+        self.llm_model = get_llm_model(model_id=model_id, hf_token=hf_token, max_new_tokens=512, **models_kwargs)
 
         self.embeddings_model = HuggingFaceEmbeddings()
         self.prompt_rag = hub.pull(id_prompt_rag)
 
-    def process_pdf(
-            self,
-            file_path: str,
-            state_uuid: Optional[UUID] = None
-    ) -> UUID:
+    def process_pdf(self, file_path: str, state_uuid: Optional[UUID] = None) -> UUID:
         """
         Gradio pipeline, process the PDF file and update the user database.
 
@@ -114,25 +106,21 @@ class RagClient:
 
     @staticmethod
     def get_unique_user_key(state_uuid: Optional[UUID] = None) -> UUID:
-        """ Gradio pipeline, get the unique user key. """
+        """Gradio pipeline, get the unique user key."""
         if state_uuid is None:
             return uuid.uuid4()
         return state_uuid
 
     def get_user_db(self, user_key: UUID) -> Chroma:
-        """ Get the user database from UUID. """
-        user_chroma_client = Chroma(
-            embedding_function=self.embeddings_model,
-            collection_name=f"{user_key}",
-            persist_directory=f'{DATABASE_PATH.absolute()}'
-        )
+        """Get the user database from UUID."""
+        user_chroma_client = Chroma(embedding_function=self.embeddings_model, collection_name=f"{user_key}", persist_directory=f"{DATABASE_PATH.absolute()}")
         return user_chroma_client
 
     def invoke(
-            self,
-            message: str,
-            history: History,
-            state_uuid: Optional[UUID] = None,
+        self,
+        message: str,
+        history: History,
+        state_uuid: Optional[UUID] = None,
     ):
         """
         Gradio pipeline, invoke the RAG model.
@@ -163,15 +151,9 @@ class RagClient:
         retreiver = db_vector.as_retriever(search_kwargs=search_kwargs)
 
         # Create RAG pipeline, LangChain 'rag_chain' example "langchain\chains\retrieval.py"
-        combine_docs_chain = create_stuff_documents_chain(
-            self.llm_model,
-            self.prompt_rag
-        )
+        combine_docs_chain = create_stuff_documents_chain(self.llm_model, self.prompt_rag)
 
-        pipeline = create_retrieval_chain(
-            retreiver,
-            combine_docs_chain
-        )
+        pipeline = create_retrieval_chain(retreiver, combine_docs_chain)
 
         # Transform history to template for LLM
         query = history_to_template(history, message)
@@ -185,17 +167,17 @@ class RagClient:
         llm_output = pipeline_output["answer"]
         list_document_context = pipeline_output["context"]
 
-        logging.debug(f"Result of llm model :\n\"\"\"\n{llm_output}\n\"\"\"")
+        logging.debug(f'Result of llm model :\n"""\n{llm_output}\n"""')
 
         return state_uuid, llm_output, list_document_context
 
     def clean_pdf(self, state_uuid: UUID) -> UUID:
-        """ Gradio pipeline, clean the user database. """
+        """Gradio pipeline, clean the user database."""
         state_uuid = self.get_unique_user_key(state_uuid)
         db_vector = self.get_user_db(state_uuid)
 
         for collection in db_vector._client.list_collections():  # noqa
-            ids = collection.get()['ids']
+            ids = collection.get()["ids"]
             if len(ids):
                 collection.delete(ids)
 

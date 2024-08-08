@@ -28,10 +28,9 @@ class PDFReader:
     counter: gr.Textbox
 
     def __init__(
-            self,
-            height: int = 410,
+        self,
+        height: int = 410,
     ):
-
         self.state_pdf = gr.State()
         self.state_page = gr.State()
 
@@ -47,41 +46,18 @@ class PDFReader:
             self.reset_button = gr.Button("🗑️ Clear PDF")
 
     def bind_events(self):
-        """ Bind the events for the PDF reader. """
+        """Bind the events for the PDF reader."""
 
-        self.file_input.change(
-            fn=self.load_pdf,
-            inputs=[self.file_input],
-            outputs=[self.state_pdf, self.state_page, self.file_input, self.display, self.counter]
-        )
+        self.file_input.change(fn=self.load_pdf, inputs=[self.file_input], outputs=[self.state_pdf, self.state_page, self.file_input, self.display, self.counter])
 
-        self.prev_button.click(
-            fn=self.navigate_pdf,
-            inputs=[self.state_pdf, self.state_page, gr.State(-1)],
-            outputs=[self.state_pdf, self.state_page, self.display, self.counter]
-        )
+        self.prev_button.click(fn=self.navigate_pdf, inputs=[self.state_pdf, self.state_page, gr.State(-1)], outputs=[self.state_pdf, self.state_page, self.display, self.counter])
 
-        self.next_button.click(
-            fn=self.navigate_pdf,
-            inputs=[self.state_pdf, self.state_page, gr.State(1)],
-            outputs=[self.state_pdf, self.state_page, self.display, self.counter]
-        )
+        self.next_button.click(fn=self.navigate_pdf, inputs=[self.state_pdf, self.state_page, gr.State(1)], outputs=[self.state_pdf, self.state_page, self.display, self.counter])
 
-        self.reset_button.click(
-            fn=self.reset_pdf,
-            outputs=[self.state_pdf, self.state_page, self.file_input, self.display, self.counter]
-        )
+        self.reset_button.click(fn=self.reset_pdf, outputs=[self.state_pdf, self.state_page, self.file_input, self.display, self.counter])
 
     @staticmethod
-    def load_pdf(
-            file_path: Optional[str]
-    ) -> Tuple[
-            Optional[fitz.Document],
-            int,
-            gr.update,
-            gr.update,
-            gr.update
-    ]:
+    def load_pdf(file_path: Optional[str]) -> Tuple[Optional[fitz.Document], int, gr.update, gr.update, gr.update]:
         """
         Load the PDF file and display the first page.
 
@@ -102,7 +78,7 @@ class PDFReader:
                 0,  # state_page
                 gr.update(visible=True),  # file_input
                 gr.update(visible=False),  # display
-                gr.update(value="No PDF loaded.")  # counter
+                gr.update(value="No PDF loaded."),  # counter
             )
 
         pdf_document = fitz.open(file_path)
@@ -114,19 +90,17 @@ class PDFReader:
             0,  # state_page
             gr.update(visible=False),  # file_input
             gr.update(visible=True, value=image),  # display
-            gr.update(value=label)  # counter
+            gr.update(value=label),  # counter
         )
 
     @staticmethod
     def navigate_pdf(
-            state_pdf: Optional[fitz.Document],
-            current_page: int,
-            direction: int
+        state_pdf: Optional[fitz.Document], current_page: int, direction: int
     ) -> Tuple[
-            Optional[fitz.Document],
-            int,
-            gr.update,
-            gr.update,
+        Optional[fitz.Document],
+        int,
+        gr.update,
+        gr.update,
     ]:
         """
         Navigate through the pages of the PDF.
@@ -149,9 +123,8 @@ class PDFReader:
             return (
                 state_pdf,  # state_pdf
                 0,  # state_page
-
                 gr.update(visible=False),  # pdf_display
-                gr.update(visible=True, value=label)  # counter
+                gr.update(visible=True, value=label),  # counter
             )
 
         max_pages = state_pdf.page_count
@@ -163,19 +136,12 @@ class PDFReader:
         return (
             state_pdf,  # state_pdf
             current_page,  # state_page
-
             gr.update(value=image),  # display
-            gr.update(visible=True, value=label)  # counter
+            gr.update(visible=True, value=label),  # counter
         )
 
     @staticmethod
-    def reset_pdf() -> Tuple[
-            Optional[fitz.Document],
-            int,
-            gr.update,
-            gr.update,
-            gr.update
-    ]:
+    def reset_pdf() -> Tuple[Optional[fitz.Document], int, gr.update, gr.update, gr.update]:
         """
         Reset the PDF reader to its initial state.
 
@@ -190,18 +156,14 @@ class PDFReader:
         return (
             None,  # state_pdf
             0,  # state_page
-
             gr.update(value=None, visible=True),  # file_input
             gr.update(value=None, visible=False),  # display
-            gr.update(value="No PDF loaded.")  # counter
+            gr.update(value="No PDF loaded."),  # counter
         )
 
 
-def get_page_image(
-        pdf_document: fitz.Document,
-        page_number: int
-) -> Image:
-    """ Get the image of a page from a PDF document. """
+def get_page_image(pdf_document: fitz.Document, page_number: int) -> Image:
+    """Get the image of a page from a PDF document."""
     page = pdf_document.load_page(page_number)
     pix = page.get_pixmap()
     bytes_img = pix.tobytes("png")
@@ -210,11 +172,8 @@ def get_page_image(
     return img
 
 
-def counter_label(
-        pdf_document: Optional[fitz.Document] = None,
-        current_page: Optional[int] = None
-) -> str:
-    """ Get the counter label for the display. """
+def counter_label(pdf_document: Optional[fitz.Document] = None, current_page: Optional[int] = None) -> str:
+    """Get the counter label for the display."""
     if pdf_document is None:
         return "No PDF loaded."
 

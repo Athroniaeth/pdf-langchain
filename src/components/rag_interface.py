@@ -10,7 +10,7 @@ from gradio import ChatMessage
 
 from src import ENV_PATH
 from src._pymupdf import highlight_text
-from src._typing import History, Examples
+from src._typing import Examples, History
 from src.client import RagClient
 from src.components import PDFReader
 from src.components.chat_interface import ChatInterface
@@ -34,15 +34,15 @@ class RagInterface:
         rag_client (RagClient): The RAG client for the interface.
         pdf_reader (PDFReader): The PDF reader for the interface.
     """
+
     rag_client: RagClient
     pdf_reader: PDFReader
 
     def __init__(
-            self,
-            model_id: str,
-            hf_token: str,
-
-            examples: Examples = None,
+        self,
+        model_id: str,
+        hf_token: str,
+        examples: Examples = None,
     ):
         if examples is None:
             examples = [
@@ -64,9 +64,7 @@ class RagInterface:
                 self.pdf_reader.bind_events()
 
             with gradio.Column(scale=2):  # Prend 2/3 de la largeur
-                self.chat_interface = ChatInterface(
-                    examples=examples
-                )
+                self.chat_interface = ChatInterface(examples=examples)
                 self.chat_interface.bind_events(
                     activate_chat_input=False,
                     activate_chat_submit=False,
@@ -74,44 +72,18 @@ class RagInterface:
                 )
 
     def bind_events(self):
-        """ Bind the events for the chat interface. """
+        """Bind the events for the chat interface."""
 
         self.chat_interface.input.submit(
             fn=self.echo,
-            inputs=[
-                self.state_uuid,
-                self.pdf_reader.state_pdf,
-                self.chat_interface.state_history,
-                self.chat_interface.input
-            ],
-            outputs=[
-                self.state_uuid,
-                self.chat_interface.state_history,
-
-                self.chat_interface.input,
-                self.chat_interface.chat,
-                self.pdf_reader.display,
-                self.pdf_reader.counter
-            ]
+            inputs=[self.state_uuid, self.pdf_reader.state_pdf, self.chat_interface.state_history, self.chat_interface.input],
+            outputs=[self.state_uuid, self.chat_interface.state_history, self.chat_interface.input, self.chat_interface.chat, self.pdf_reader.display, self.pdf_reader.counter],
         )
 
         self.chat_interface.submit.click(
             fn=self.echo,
-            inputs=[
-                self.state_uuid,
-                self.pdf_reader.state_pdf,
-                self.chat_interface.state_history,
-                self.chat_interface.input
-            ],
-            outputs=[
-                self.state_uuid,
-                self.chat_interface.state_history,
-
-                self.chat_interface.input,
-                self.chat_interface.chat,
-                self.pdf_reader.display,
-                self.pdf_reader.counter
-            ]
+            inputs=[self.state_uuid, self.pdf_reader.state_pdf, self.chat_interface.state_history, self.chat_interface.input],
+            outputs=[self.state_uuid, self.chat_interface.state_history, self.chat_interface.input, self.chat_interface.chat, self.pdf_reader.display, self.pdf_reader.counter],
         )
 
         self.chat_interface.retry_button.click(
@@ -121,38 +93,25 @@ class RagInterface:
                 self.pdf_reader.state_pdf,
                 self.chat_interface.state_history,
             ],
-            outputs=[
-                self.state_uuid,
-                self.chat_interface.state_history,
-
-                self.chat_interface.chat,
-                self.pdf_reader.display,
-                self.pdf_reader.counter
-            ]
+            outputs=[self.state_uuid, self.chat_interface.state_history, self.chat_interface.chat, self.pdf_reader.display, self.pdf_reader.counter],
         )
 
         # Refresh pdf display for highlighting text
-        self.pdf_reader.file_input.change(
-            fn=self.load_document,
-            inputs=[self.state_uuid, self.pdf_reader.file_input],
-            outputs=[self.state_uuid, self.pdf_reader.display]
-        )
+        self.pdf_reader.file_input.change(fn=self.load_document, inputs=[self.state_uuid, self.pdf_reader.file_input], outputs=[self.state_uuid, self.pdf_reader.display])
 
     def echo(
-            self,
-            state_uuid: Optional[UUID],
-            state_document: Optional[fitz.Document],
-            state_history: History,
-
-            message: str,
+        self,
+        state_uuid: Optional[UUID],
+        state_document: Optional[fitz.Document],
+        state_history: History,
+        message: str,
     ) -> Tuple[
-            UUID,
-            History,
-
-            gr.update,  # input
-            gr.update,  # history
-            gr.update,  # image
-            gr.update,  # counter
+        UUID,
+        History,
+        gr.update,  # input
+        gr.update,  # history
+        gr.update,  # image
+        gr.update,  # counter
     ]:
         """
         Start the inference with the RAG client and update the PDF display.
@@ -180,7 +139,7 @@ class RagInterface:
         if state_document is not None:
             for document_context in list_document_context:
                 text = document_context.page_content  # noqa nique tamre
-                page = document_context.metadata['page']
+                page = document_context.metadata["page"]
                 state_document = highlight_text(state_document, text, page)
 
         # Create the chat messages
@@ -199,22 +158,14 @@ class RagInterface:
             # states
             state_uuid,  # state_uuid
             state_history,  # history
-
             # updates
             gr.update(value=""),  # input
             gr.update(value=state_history),  # chat
             update_image,  # image
-            update_label  # counter
+            update_label,  # counter
         )
 
-    def load_document(
-            self,
-            state_uuid: UUID,
-            file_path: Optional[str]
-    ) -> Tuple[
-        UUID,
-        gr.update
-    ]:
+    def load_document(self, state_uuid: UUID, file_path: Optional[str]) -> Tuple[UUID, gr.update]:
         """
         Load the PDF document to the RAG client.
 
@@ -242,17 +193,13 @@ class RagInterface:
         return state_uuid, gr.update()
 
     def retry(
-            self,
-            state_uuid: UUID,
-            state_document: Optional[fitz.Document],
-            state_history: History
+        self, state_uuid: UUID, state_document: Optional[fitz.Document], state_history: History
     ) -> Tuple[
-            UUID,
-            History,
-
-            gr.update,  # history
-            gr.update,  # image
-            gr.update,  # counter
+        UUID,
+        History,
+        gr.update,  # history
+        gr.update,  # image
+        gr.update,  # counter
     ]:
         """
         Retry the last message (user) in the chat history.
@@ -285,11 +232,10 @@ class RagInterface:
             return (
                 state_uuid,  # state_uuid
                 state_history,  # history
-
                 # updates
                 update_chat,  # history
                 update_image,  # image
-                update_counter  # counter
+                update_counter,  # counter
             )
 
         # Alert the user that there is no message to retry
@@ -298,11 +244,10 @@ class RagInterface:
         return (
             state_uuid,  # state_uuid
             state_history,  # state_history
-
             # updates
             gr.update(value=state_history),  # history
             gr.update(),  # image
-            gr.update()  # counter
+            gr.update(),  # counter
         )
 
 

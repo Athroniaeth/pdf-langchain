@@ -3,17 +3,18 @@ from typing import Optional, Tuple
 import gradio as gr
 from gradio import ChatMessage
 
-from src._typing import History, Examples, InferenceCallable
+from src._typing import Examples, History, InferenceCallable
 
 
 class ChatInterface:
     """
     Chat interface for the Gradio application.
-    
+
     gr.ChatInterface don't allow to return arbitrary outputs, because 'echo'
     function must just return the response in string format. This class manage
     the history of the chat and return the arbitrary outputs.
     """
+
     fn: InferenceCallable
     state_history: gr.State  # History
 
@@ -26,13 +27,9 @@ class ChatInterface:
     undo_button: gr.Button
     clear_button: gr.Button
 
-    def __init__(
-            self,
-            fn: Optional[InferenceCallable] = None,
-            examples: Optional[Examples] = None
-    ):
+    def __init__(self, fn: Optional[InferenceCallable] = None, examples: Optional[Examples] = None):
         if fn is None:
-            fn = lambda message, history: message
+            fn = lambda message, history: message  # noqa E731
 
         if examples is None:
             examples = [
@@ -62,29 +59,20 @@ class ChatInterface:
             self.examples = gr.Examples(examples, self.input, self.input)
 
     def bind_events(
-            self,
-            activate_chat_input: bool = True,
-            activate_chat_submit: bool = True,
-
-            activate_button_retry: bool = True,
-            activate_button_undo: bool = True,
-            activate_button_clear: bool = True,
+        self,
+        activate_chat_input: bool = True,
+        activate_chat_submit: bool = True,
+        activate_button_retry: bool = True,
+        activate_button_undo: bool = True,
+        activate_button_clear: bool = True,
     ):
-        """ Bind the events for the chat interface. """
+        """Bind the events for the chat interface."""
 
         if activate_chat_input:
-            self.input.submit(
-                fn=self.echo,
-                inputs=[self.input, self.state_history],
-                outputs=[self.state_history, self.input, self.chat]
-            )
+            self.input.submit(fn=self.echo, inputs=[self.input, self.state_history], outputs=[self.state_history, self.input, self.chat])
 
         if activate_chat_submit:
-            self.submit.click(
-                fn=self.echo,
-                inputs=[self.input, self.state_history],
-                outputs=[self.state_history, self.input, self.chat]
-            )
+            self.submit.click(fn=self.echo, inputs=[self.input, self.state_history], outputs=[self.state_history, self.input, self.chat])
 
         if activate_button_retry:
             self.retry_button.click(
@@ -108,11 +96,10 @@ class ChatInterface:
             )
 
     def retry(
-            self,
-            history: History
+        self, history: History
     ) -> Tuple[
-            History,
-            gr.update,
+        History,
+        gr.update,
     ]:
         """
         Retry the last message from the user.
@@ -147,10 +134,10 @@ class ChatInterface:
 
     @staticmethod
     def undo(
-            history: History
+        history: History,
     ) -> Tuple[
-            History,
-            gr.update,
+        History,
+        gr.update,
     ]:
         """
         Undo the last message from the user.
@@ -176,10 +163,10 @@ class ChatInterface:
 
     @staticmethod
     def clear(
-            history: History
+        history: History,
     ) -> Tuple[
-            History,
-            gr.update,
+        History,
+        gr.update,
     ]:
         """
         Clear the chat history.
@@ -194,19 +181,14 @@ class ChatInterface:
         """
         history.clear()
 
-        return (
-            history,
-            gr.update(value=history)
-        )
+        return (history, gr.update(value=history))
 
     def echo(
-            self,
-            message: str,
-            history: History
+        self, message: str, history: History
     ) -> Tuple[
-            History,
-            gr.update,
-            gr.update,
+        History,
+        gr.update,
+        gr.update,
     ]:
         """
         Start the chatbot inference and update the chat history.
@@ -228,11 +210,7 @@ class ChatInterface:
         if not message:
             gr.Warning("There is no message to echo.")
 
-            return (
-                history,
-                gr.update(value=""),
-                gr.update(value=history)
-            )
+            return (history, gr.update(value=""), gr.update(value=history))
 
         # Start inference
         response = self.fn(message, history)
@@ -249,19 +227,15 @@ class ChatInterface:
         return (
             # states
             history,  # history
-
             # components
             gr.update(value=""),  # input
-            gr.update(value=history)  # chatbot
+            gr.update(value=history),  # chatbot
         )
 
 
 if __name__ == "__main__":
     with gr.Blocks() as application:
         chat = ChatInterface()
-        chat.bind_events(
-            activate_chat_events=True,
-            activate_button_events=True
-        )
+        chat.bind_events(activate_chat_events=True, activate_button_events=True)
 
     application.launch()
