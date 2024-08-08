@@ -31,7 +31,12 @@ def get_llm_model(
     if hf_token is None:
         hf_token = os.environ["HF_TOKEN"]
 
-    llm_model = _get_llm_model_hf_cloud(model_id=model_id, hf_token=hf_token, max_new_tokens=max_new_tokens, models_kwargs=models_kwargs)
+    llm_model = _get_llm_model_hf_cloud(
+        model_id=model_id,
+        hf_token=hf_token,
+        max_new_tokens=max_new_tokens,
+        models_kwargs=models_kwargs,
+    )
 
     logging.debug(f'Model "{model_id}" loaded successfully.')
     llm_model.name = model_id
@@ -48,7 +53,12 @@ def _get_llm_model_hf_cloud(
     """Load a model from Hugging Face Cloud."""
     logging.debug(f"Loading model '{model_id}' from Hugging Face Cloud.")
 
-    llm_model = HuggingFaceEndpoint(repo_id=model_id, huggingfacehub_api_token=hf_token, max_new_tokens=max_new_tokens, **models_kwargs)
+    llm_model = HuggingFaceEndpoint(
+        repo_id=model_id,
+        huggingfacehub_api_token=hf_token,
+        max_new_tokens=max_new_tokens,
+        **models_kwargs,
+    )
 
     return llm_model
 

@@ -11,16 +11,22 @@ from typer import Typer
 from src._logging import Level, clean_logging, set_logging_level
 from src.app import app
 
-cli = Typer(pretty_exceptions_enable=False, pretty_exceptions_show_locals=False, no_args_is_help=True)
+cli = Typer(
+    pretty_exceptions_enable=False, pretty_exceptions_show_locals=False, no_args_is_help=True
+)
 
 
 @cli.callback()
 def callback(
     ctx: typer.Context,
-    hf_token: str = typer.Option(None, envvar="HF_TOKEN", help="Access token for Hugging Face API."),
+    hf_token: str = typer.Option(
+        None, envvar="HF_TOKEN", help="Access token for Hugging Face API."
+    ),
     logging_level: Level = typer.Option(Level.INFO, help="Log level for application logs."),
     logging_level_hf: Level = typer.Option(Level.INFO, help="Log level for Hugging Face logs."),
-    logging_level_other: Level = typer.Option(Level.WARNING, help="Log level for other logs (urllib3, httpcore, ChromaDB)."),
+    logging_level_other: Level = typer.Option(
+        Level.WARNING, help="Log level for other logs (urllib3, httpcore, ChromaDB)."
+    ),
 ):
     """
     Initialize the CLI application context.
@@ -144,15 +150,23 @@ def get_info_environment(
 def run(
     ctx: typer.Context = typer.Option(None, callback=callback, is_eager=True),
     config: str = typer.Option("", callback=conf_callback, is_eager=True),  # noqa: Parameter 'config' value is not used
-    environment: Environment = typer.Option(Environment.DEVELOPMENT, envvar="ENVIRONMENT", help="Environnement d'exécution."),
+    environment: Environment = typer.Option(
+        Environment.DEVELOPMENT, envvar="ENVIRONMENT", help="Environnement d'exécution."
+    ),
     ssl_keyfile: str = typer.Option(None, envvar="SSL_KEYFILE", help="Fichier de clé SSL."),
-    ssl_certfile: str = typer.Option(None, envvar="SSL_CERTFILE", help="Fichier de certificat SSL."),
-    model_id: str = typer.Option("mistralai/Mistral-7B-Instruct-v0.3", help="Identifiant HuggingFace du modèle LLM."),
+    ssl_certfile: str = typer.Option(
+        None, envvar="SSL_CERTFILE", help="Fichier de certificat SSL."
+    ),
+    model_id: str = typer.Option(
+        "mistralai/Mistral-7B-Instruct-v0.3", help="Identifiant HuggingFace du modèle LLM."
+    ),
 ):
     """Start the server with the given environment."""
 
     # Get the environment information
-    host, port, ssl_keyfile, ssl_certfile = get_info_environment(environment, ssl_keyfile, ssl_certfile)
+    host, port, ssl_keyfile, ssl_certfile = get_info_environment(
+        environment, ssl_keyfile, ssl_certfile
+    )
 
     # Log the environment information
     ssl = bool(ssl_keyfile and ssl_certfile)
@@ -160,7 +174,14 @@ def run(
     logging.info(f"{host=}, {port=}, {ssl=}")
 
     # Run the Gradio application with the given environment
-    app(model_id=model_id, hf_token=ctx.obj.hf_token, host=host, port=port, ssl_keyfile=ssl_keyfile, ssl_certfile=ssl_certfile)
+    app(
+        model_id=model_id,
+        hf_token=ctx.obj.hf_token,
+        host=host,
+        port=port,
+        ssl_keyfile=ssl_keyfile,
+        ssl_certfile=ssl_certfile,
+    )
 
 
 if __name__ == "__main__":

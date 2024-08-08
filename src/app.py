@@ -43,7 +43,15 @@ def app(
 
         rag_interface.bind_events()
 
-    application.launch(ssl_verify=False, debug=debug, server_name=host, server_port=port, ssl_keyfile=ssl_keyfile, ssl_certfile=ssl_certfile, max_file_size="1mb")
+    application.launch(
+        ssl_verify=False,
+        debug=debug,
+        server_name=host,
+        server_port=port,
+        ssl_keyfile=ssl_keyfile,
+        ssl_certfile=ssl_certfile,
+        max_file_size="1mb",
+    )
 
 
 if __name__ == "__main__":

@@ -76,14 +76,38 @@ class RagInterface:
 
         self.chat_interface.input.submit(
             fn=self.echo,
-            inputs=[self.state_uuid, self.pdf_reader.state_pdf, self.chat_interface.state_history, self.chat_interface.input],
-            outputs=[self.state_uuid, self.chat_interface.state_history, self.chat_interface.input, self.chat_interface.chat, self.pdf_reader.display, self.pdf_reader.counter],
+            inputs=[
+                self.state_uuid,
+                self.pdf_reader.state_pdf,
+                self.chat_interface.state_history,
+                self.chat_interface.input,
+            ],
+            outputs=[
+                self.state_uuid,
+                self.chat_interface.state_history,
+                self.chat_interface.input,
+                self.chat_interface.chat,
+                self.pdf_reader.display,
+                self.pdf_reader.counter,
+            ],
         )
 
         self.chat_interface.submit.click(
             fn=self.echo,
-            inputs=[self.state_uuid, self.pdf_reader.state_pdf, self.chat_interface.state_history, self.chat_interface.input],
-            outputs=[self.state_uuid, self.chat_interface.state_history, self.chat_interface.input, self.chat_interface.chat, self.pdf_reader.display, self.pdf_reader.counter],
+            inputs=[
+                self.state_uuid,
+                self.pdf_reader.state_pdf,
+                self.chat_interface.state_history,
+                self.chat_interface.input,
+            ],
+            outputs=[
+                self.state_uuid,
+                self.chat_interface.state_history,
+                self.chat_interface.input,
+                self.chat_interface.chat,
+                self.pdf_reader.display,
+                self.pdf_reader.counter,
+            ],
         )
 
         self.chat_interface.retry_button.click(
@@ -93,11 +117,21 @@ class RagInterface:
                 self.pdf_reader.state_pdf,
                 self.chat_interface.state_history,
             ],
-            outputs=[self.state_uuid, self.chat_interface.state_history, self.chat_interface.chat, self.pdf_reader.display, self.pdf_reader.counter],
+            outputs=[
+                self.state_uuid,
+                self.chat_interface.state_history,
+                self.chat_interface.chat,
+                self.pdf_reader.display,
+                self.pdf_reader.counter,
+            ],
         )
 
         # Refresh pdf display for highlighting text
-        self.pdf_reader.file_input.change(fn=self.load_document, inputs=[self.state_uuid, self.pdf_reader.file_input], outputs=[self.state_uuid, self.pdf_reader.display])
+        self.pdf_reader.file_input.change(
+            fn=self.load_document,
+            inputs=[self.state_uuid, self.pdf_reader.file_input],
+            outputs=[self.state_uuid, self.pdf_reader.display],
+        )
 
     def echo(
         self,
@@ -133,7 +167,9 @@ class RagInterface:
         """
 
         # Start inference with the RAG client
-        state_uuid, response, list_document_context = self.rag_client.invoke(message, state_history, state_uuid)
+        state_uuid, response, list_document_context = self.rag_client.invoke(
+            message, state_history, state_uuid
+        )
 
         # Highlight the context in the PDF document
         if state_document is not None:
@@ -226,7 +262,9 @@ class RagInterface:
             state_history = state_history[:-2]
 
             # Restart the inference with the last user message
-            state_uuid, state_history, _, update_chat, update_image, update_counter = self.echo(state_uuid, state_document, state_history, message)
+            state_uuid, state_history, _, update_chat, update_image, update_counter = self.echo(
+                state_uuid, state_document, state_history, message
+            )
 
             # Retry the last message (user)
             return (

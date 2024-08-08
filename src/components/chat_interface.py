@@ -52,7 +52,15 @@ class ChatInterface:
 
             # Input text box for the user to type the message
             with gr.Row(variant="compact"):
-                self.input = gr.Textbox(container=False, scale=2, lines=1, max_lines=1, show_label=False, placeholder="Type your message here...", interactive=True)
+                self.input = gr.Textbox(
+                    container=False,
+                    scale=2,
+                    lines=1,
+                    max_lines=1,
+                    show_label=False,
+                    placeholder="Type your message here...",
+                    interactive=True,
+                )
                 self.submit = gr.Button("Submit", variant="primary", scale=1)
 
             # Examples of messages to help the user
@@ -69,10 +77,18 @@ class ChatInterface:
         """Bind the events for the chat interface."""
 
         if activate_chat_input:
-            self.input.submit(fn=self.echo, inputs=[self.input, self.state_history], outputs=[self.state_history, self.input, self.chat])
+            self.input.submit(
+                fn=self.echo,
+                inputs=[self.input, self.state_history],
+                outputs=[self.state_history, self.input, self.chat],
+            )
 
         if activate_chat_submit:
-            self.submit.click(fn=self.echo, inputs=[self.input, self.state_history], outputs=[self.state_history, self.input, self.chat])
+            self.submit.click(
+                fn=self.echo,
+                inputs=[self.input, self.state_history],
+                outputs=[self.state_history, self.input, self.chat],
+            )
 
         if activate_button_retry:
             self.retry_button.click(

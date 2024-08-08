@@ -72,7 +72,9 @@ class RagClient:
         if models_kwargs is None:
             models_kwargs = {"max_length": 512}
 
-        self.llm_model = get_llm_model(model_id=model_id, hf_token=hf_token, max_new_tokens=512, **models_kwargs)
+        self.llm_model = get_llm_model(
+            model_id=model_id, hf_token=hf_token, max_new_tokens=512, **models_kwargs
+        )
 
         self.embeddings_model = HuggingFaceEmbeddings()
         self.prompt_rag = hub.pull(id_prompt_rag)
@@ -113,7 +115,11 @@ class RagClient:
 
     def get_user_db(self, user_key: UUID) -> Chroma:
         """Get the user database from UUID."""
-        user_chroma_client = Chroma(embedding_function=self.embeddings_model, collection_name=f"{user_key}", persist_directory=f"{DATABASE_PATH.absolute()}")
+        user_chroma_client = Chroma(
+            embedding_function=self.embeddings_model,
+            collection_name=f"{user_key}",
+            persist_directory=f"{DATABASE_PATH.absolute()}",
+        )
         return user_chroma_client
 
     def invoke(

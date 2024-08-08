@@ -37,7 +37,13 @@ class PDFReader:
         with gr.Column(variant="compact"):
             self.file_input = gr.File(label="Upload PDF", type="filepath", file_types=[".pdf"])
             self.display = gr.Image(visible=False, height=height)
-            self.counter = gr.Textbox(show_label=False, max_lines=1, interactive=False, value="No PDF loaded.", elem_id="counter")
+            self.counter = gr.Textbox(
+                show_label=False,
+                max_lines=1,
+                interactive=False,
+                value="No PDF loaded.",
+                elem_id="counter",
+            )
 
             with gr.Row():
                 self.prev_button = gr.Button("⬅️ Prev Page")
@@ -48,16 +54,33 @@ class PDFReader:
     def bind_events(self):
         """Bind the events for the PDF reader."""
 
-        self.file_input.change(fn=self.load_pdf, inputs=[self.file_input], outputs=[self.state_pdf, self.state_page, self.file_input, self.display, self.counter])
+        self.file_input.change(
+            fn=self.load_pdf,
+            inputs=[self.file_input],
+            outputs=[self.state_pdf, self.state_page, self.file_input, self.display, self.counter],
+        )
 
-        self.prev_button.click(fn=self.navigate_pdf, inputs=[self.state_pdf, self.state_page, gr.State(-1)], outputs=[self.state_pdf, self.state_page, self.display, self.counter])
+        self.prev_button.click(
+            fn=self.navigate_pdf,
+            inputs=[self.state_pdf, self.state_page, gr.State(-1)],
+            outputs=[self.state_pdf, self.state_page, self.display, self.counter],
+        )
 
-        self.next_button.click(fn=self.navigate_pdf, inputs=[self.state_pdf, self.state_page, gr.State(1)], outputs=[self.state_pdf, self.state_page, self.display, self.counter])
+        self.next_button.click(
+            fn=self.navigate_pdf,
+            inputs=[self.state_pdf, self.state_page, gr.State(1)],
+            outputs=[self.state_pdf, self.state_page, self.display, self.counter],
+        )
 
-        self.reset_button.click(fn=self.reset_pdf, outputs=[self.state_pdf, self.state_page, self.file_input, self.display, self.counter])
+        self.reset_button.click(
+            fn=self.reset_pdf,
+            outputs=[self.state_pdf, self.state_page, self.file_input, self.display, self.counter],
+        )
 
     @staticmethod
-    def load_pdf(file_path: Optional[str]) -> Tuple[Optional[fitz.Document], int, gr.update, gr.update, gr.update]:
+    def load_pdf(
+        file_path: Optional[str],
+    ) -> Tuple[Optional[fitz.Document], int, gr.update, gr.update, gr.update]:
         """
         Load the PDF file and display the first page.
 
@@ -172,7 +195,9 @@ def get_page_image(pdf_document: fitz.Document, page_number: int) -> Image:
     return img
 
 
-def counter_label(pdf_document: Optional[fitz.Document] = None, current_page: Optional[int] = None) -> str:
+def counter_label(
+    pdf_document: Optional[fitz.Document] = None, current_page: Optional[int] = None
+) -> str:
     """Get the counter label for the display."""
     if pdf_document is None:
         return "No PDF loaded."
