@@ -11,22 +11,16 @@ from typer import Typer
 from src._logging import Level, clean_logging, set_logging_level
 from src.app import app
 
-cli = Typer(
-    pretty_exceptions_enable=False, pretty_exceptions_show_locals=False, no_args_is_help=True
-)
+cli = Typer(pretty_exceptions_enable=False, pretty_exceptions_show_locals=False, no_args_is_help=True)
 
 
 @cli.callback()
 def callback(
     ctx: typer.Context,
-    hf_token: str = typer.Option(
-        None, envvar="HF_TOKEN", help="Access token for Hugging Face API."
-    ),
+    hf_token: str = typer.Option(None, envvar="HF_TOKEN", help="Access token for Hugging Face API."),
     logging_level: Level = typer.Option(Level.INFO, help="Log level for application logs."),
     logging_level_hf: Level = typer.Option(Level.INFO, help="Log level for Hugging Face logs."),
-    logging_level_other: Level = typer.Option(
-        Level.WARNING, help="Log level for other logs (urllib3, httpcore, ChromaDB)."
-    ),
+    logging_level_other: Level = typer.Option(Level.WARNING, help="Log level for other logs (urllib3, httpcore, ChromaDB)."),
 ):
     """
     Initialize the CLI application context.
@@ -147,30 +141,57 @@ def get_info_environment(
 
 
 @cli.command()
-def run(
+def start(
     ctx: typer.Context = typer.Option(None, callback=callback, is_eager=True),
-    config: str = typer.Option("", callback=conf_callback, is_eager=True),  # noqa: Parameter 'config' value is not used
-    environment: Environment = typer.Option(
-        Environment.DEVELOPMENT, envvar="ENVIRONMENT", help="Environnement d'exécution."
-    ),
+    config: str = typer.Option("", callback=conf_callback, is_eager=True),
+    # noqa: Parameter 'config' value is not used
+    environment: Environment = typer.Option(Environment.DEVELOPMENT, envvar="ENVIRONMENT", help="Environnement d'exécution."),
     ssl_keyfile: str = typer.Option(None, envvar="SSL_KEYFILE", help="Fichier de clé SSL."),
-    ssl_certfile: str = typer.Option(
-        None, envvar="SSL_CERTFILE", help="Fichier de certificat SSL."
-    ),
-    model_id: str = typer.Option(
-        "mistralai/Mistral-7B-Instruct-v0.3", help="Identifiant HuggingFace du modèle LLM."
-    ),
+    ssl_certfile: str = typer.Option(None, envvar="SSL_CERTFILE", help="Fichier de certificat SSL."),
+    model_id: str = typer.Option("mistralai/Mistral-7B-Instruct-v0.3", help="Identifiant HuggingFace du modèle LLM."),
 ):
     """Start the server with the given environment."""
 
     # Get the environment information
-    host, port, ssl_keyfile, ssl_certfile = get_info_environment(
-        environment, ssl_keyfile, ssl_certfile
+    logging.info(f"Environment: {environment}")
+    host, port, ssl_keyfile, ssl_certfile = get_info_environment(environment, ssl_keyfile, ssl_certfile)
+
+    # Use 'run' command to start the server
+    run(
+        ctx=ctx,
+        config=config,
+        host=host,
+        port=port,
+        ssl_keyfile=ssl_keyfile,
+        ssl_certfile=ssl_certfile,
+        model_id=model_id,
     )
+
+
+@cli.command()
+def run(
+    ctx: typer.Context = typer.Option(None, callback=callback, is_eager=True),
+    config: str = typer.Option("", callback=conf_callback, is_eager=True),
+    host: str = typer.Option("127.0.0.1", envvar="HOST", help="Adresse sur laquelle le serveur doit écouter."),
+    port: int = typer.Option(7860, envvar="PORT", help="Port sur lequel le serveur doit écouter."),
+    ssl_keyfile: str = typer.Option(None, envvar="SSL_KEYFILE", help="Fichier de clé SSL."),
+    ssl_certfile: str = typer.Option(None, envvar="SSL_CERTFILE", help="Fichier de certificat SSL."),
+    model_id: str = typer.Option("mistralai/Mistral-7B-Instruct-v0.3", help="Identifiant HuggingFace du modèle LLM."),
+):
+    """Start the server with the given environment."""
+
+    # Check if SSL key and certificate files exist
+    if ssl_keyfile and not os.path.exists(ssl_keyfile):
+        raise FileNotFoundError(f"SSL Key file '{ssl_keyfile}' not found")
+
+    if ssl_certfile and not os.path.exists(ssl_certfile):
+        raise FileNotFoundError(f"SSL Certificate file '{ssl_certfile}' not found")
+
+    if (not ssl_keyfile and ssl_certfile) or (ssl_keyfile and not ssl_certfile):
+        raise ValueError(f"Both SSL Key and Certificate files must be provided ({ssl_keyfile=}, {ssl_certfile=})")
 
     # Log the environment information
     ssl = bool(ssl_keyfile and ssl_certfile)
-    logging.info(f"Environment: {environment}")
     logging.info(f"{host=}, {port=}, {ssl=}")
 
     # Run the Gradio application with the given environment

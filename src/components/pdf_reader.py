@@ -195,9 +195,7 @@ def get_page_image(pdf_document: fitz.Document, page_number: int) -> Image:
     return img
 
 
-def counter_label(
-    pdf_document: Optional[fitz.Document] = None, current_page: Optional[int] = None
-) -> str:
+def counter_label(pdf_document: Optional[fitz.Document] = None, current_page: Optional[int] = None) -> str:
     """Get the counter label for the display."""
     if pdf_document is None:
         return "No PDF loaded."

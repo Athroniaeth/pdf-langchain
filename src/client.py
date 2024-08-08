@@ -72,9 +72,7 @@ class RagClient:
         if models_kwargs is None:
             models_kwargs = {"max_length": 512}
 
-        self.llm_model = get_llm_model(
-            model_id=model_id, hf_token=hf_token, max_new_tokens=512, **models_kwargs
-        )
+        self.llm_model = get_llm_model(model_id=model_id, hf_token=hf_token, max_new_tokens=512, **models_kwargs)
 
         self.embeddings_model = HuggingFaceEmbeddings()
         self.prompt_rag = hub.pull(id_prompt_rag)

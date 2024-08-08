@@ -167,9 +167,7 @@ class RagInterface:
         """
 
         # Start inference with the RAG client
-        state_uuid, response, list_document_context = self.rag_client.invoke(
-            message, state_history, state_uuid
-        )
+        state_uuid, response, list_document_context = self.rag_client.invoke(message, state_history, state_uuid)
 
         # Highlight the context in the PDF document
         if state_document is not None:
@@ -262,9 +260,7 @@ class RagInterface:
             state_history = state_history[:-2]
 
             # Restart the inference with the last user message
-            state_uuid, state_history, _, update_chat, update_image, update_counter = self.echo(
-                state_uuid, state_document, state_history, message
-            )
+            state_uuid, state_history, _, update_chat, update_image, update_counter = self.echo(state_uuid, state_document, state_history, message)
 
             # Retry the last message (user)
             return (
