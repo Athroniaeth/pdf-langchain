@@ -8,7 +8,7 @@
 - ~~Mettre les fonctions Retry, Delete, Undo dans le chat interface~~
 - ~~Pas d'erreur quand aucun document n'est fournit au RAG~~
 - Permettre de mettre tous le document en contexte
-- Crée une fonction de template (fusion de l'historique et de la requester utilisateur)
+- ~~Crée une fonction de template (fusion de l'historique et de la requester utilisateur)~~
 - Crée une automatisation (avec Airflow ou un Thread au lancement du serveur) pour supprimer les db_vector
   - Spécifier dans le .env le temps de vie des db_vector
   - Spécifier dans le .env le chemin des db_vector (a la place de l'avoir en variable globale, cela permet de viser des stockages attachés par exemple)

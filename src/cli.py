@@ -104,13 +104,11 @@ def get_info_environment(
     Get the information of the environment.
 
     Args:
-    --------
         environment (Environment): The environment to use.
         ssl_keyfile (Optional[str]): The SSL key file.
         ssl_certfile (Optional[str]): The SSL certificate file.
 
     Returns:
-    --------
         str: The host to use for the server.
         int: The port to use for the server.
         str: The SSL key file path.
