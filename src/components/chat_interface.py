@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple
 
 import gradio as gr
 from gradio import ChatMessage
@@ -110,10 +110,10 @@ class ChatInterface:
     def retry(
             self,
             history: History
-    ) -> (
+    ) -> Tuple[
             History,
             gr.update,
-    ):
+    ]:
         """
         Retry the last message from the user.
 
@@ -148,10 +148,10 @@ class ChatInterface:
     @staticmethod
     def undo(
             history: History
-    ) -> (
+    ) -> Tuple[
             History,
             gr.update,
-    ):
+    ]:
         """
         Undo the last message from the user.
 
@@ -177,10 +177,10 @@ class ChatInterface:
     @staticmethod
     def clear(
             history: History
-    ) -> (
+    ) -> Tuple[
             History,
             gr.update,
-    ):
+    ]:
         """
         Clear the chat history.
 
@@ -203,11 +203,11 @@ class ChatInterface:
             self,
             message: str,
             history: History
-    ) -> (
+    ) -> Tuple[
             History,
             gr.update,
             gr.update,
-    ):
+    ]:
         """
         Start the chatbot inference and update the chat history.
 
@@ -216,10 +216,9 @@ class ChatInterface:
             history (History): The chat history.
 
         Returns:
-            tuple: A tuple containing the following elements:
-                - History: The updated chat history.
-                - gr.update: Update for the input component.
-                - gr.update: Update for the chatbot component
+            History: The updated chat history.
+            gr.update: Update for the input component.
+            gr.update: Update for the chatbot component
 
         """
         # preprocess the message

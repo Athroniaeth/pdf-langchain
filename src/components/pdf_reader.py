@@ -1,5 +1,5 @@
 import io
-from typing import Optional
+from typing import Optional, Tuple
 
 import fitz
 import gradio as gr
@@ -75,13 +75,13 @@ class PDFReader:
     @staticmethod
     def load_pdf(
             file_path: Optional[str]
-    ) -> (
+    ) -> Tuple[
             Optional[fitz.Document],
             int,
             gr.update,
             gr.update,
             gr.update
-    ):
+    ]:
         """
         Load the PDF file and display the first page.
 
@@ -89,12 +89,11 @@ class PDFReader:
             file_path (Optional[str]): The path to the PDF file.
 
         Returns:
-            tuple: A tuple containing the following elements:
-                - Optional[fitz.Document]: The loaded PDF document or None if the file path is not provided.
-                - int: The total number of pages in the PDF document.
-                - gr.update: Update for the PDF document display (Gradio component update).
-                - gr.update: Update for the page number display (Gradio component update).
-                - gr.update: Update for any additional component display or state (Gradio component update).
+            Optional[fitz.Document]: The loaded PDF document or None if the file path is not provided.
+            int: The total number of pages in the PDF document.
+            gr.update: Update for the PDF document display (Gradio component update).
+            gr.update: Update for the page number display (Gradio component update).
+            gr.update: Update for any additional component display or state (Gradio component update).
         """
 
         if file_path is None:
@@ -123,12 +122,12 @@ class PDFReader:
             state_pdf: Optional[fitz.Document],
             current_page: int,
             direction: int
-    ) -> (
+    ) -> Tuple[
             Optional[fitz.Document],
             int,
             gr.update,
-            gr.update
-    ):
+            gr.update,
+    ]:
         """
         Navigate through the pages of the PDF.
 
@@ -138,11 +137,10 @@ class PDFReader:
             direction (int): The navigation direction (-1 for previous, 1 for next).
 
         Returns:
-            tuple: A tuple containing the following elements:
-                - Optional[fitz.Document]: The updated PDF document.
-                - int: The updated page number.
-                - gr.update: Update for the PDF document display (Gradio component update).
-                - gr.update: Update for the page number display (Gradio component update).
+            Optional[fitz.Document]: The updated PDF document.
+            int: The updated page number.
+            gr.update: Update for the PDF document display (Gradio component update).
+            gr.update: Update for the page number display (Gradio component update).
         """
 
         if state_pdf is None:
@@ -171,23 +169,23 @@ class PDFReader:
         )
 
     @staticmethod
-    def reset_pdf() -> (
+    def reset_pdf() -> Tuple[
             Optional[fitz.Document],
             int,
             gr.update,
             gr.update,
             gr.update
-    ):
+    ]:
         """
         Reset the PDF reader to its initial state.
 
         Returns:
-            tuple: A tuple containing the following elements:
-                - Optional[fitz.Document]: The updated PDF document.
-                - int: The updated page number.
-                - gr.update: Update for the PDF document display (Gradio component update).
-                - gr.update: Update for the page number display (Gradio component update).
-                - gr.update: Update for any additional component display or state (Gradio component update).
+            Optional[fitz.Document]: The state PDF document.
+            int: The state page number.
+
+            gr.update: Update for the PDF document display (Gradio component update).
+            gr.update: Update for the page number display (Gradio component update).
+            gr.update: Update for any additional component display or state (Gradio component update).
         """
         return (
             None,  # state_pdf

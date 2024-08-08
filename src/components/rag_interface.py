@@ -1,5 +1,5 @@
 import os
-from typing import Optional
+from typing import Optional, Tuple
 from uuid import UUID
 
 import fitz
@@ -19,10 +19,20 @@ from src.components.chat_interface import ChatInterface
 class RagInterface:
     """
     Rag interface for the Gradio application.
-    
-    gr.ChatInterface don't allow to return gr.update, because 'echo'
-    function must just return the response in string format. This class
-    return the response in string format and update the PDF display.
+
+    Notes:
+        gr.ChatInterface don't allow to return gr.update, because 'echo'
+        function must just return the response in string format. This class
+        return the response in string format and update the PDF display.
+
+    Args:
+        model_id (str): The model ID of the RAG model.
+        hf_token (str): The Hugging Face token.
+        examples (Examples): The list of examples for the chat interface.
+
+    Attributes:
+        rag_client (RagClient): The RAG client for the interface.
+        pdf_reader (PDFReader): The PDF reader for the interface.
     """
     rag_client: RagClient
     pdf_reader: PDFReader
@@ -62,13 +72,6 @@ class RagInterface:
                     activate_chat_submit=False,
                     activate_button_retry=False,
                 )
-                """
-                super().__init__(examples=examples)
-                super().bind_events(
-                    activate_chat_events=False,
-                    activate_button_events=True,
-                )
-                """
 
     def bind_events(self):
         """ Bind the events for the chat interface. """
@@ -142,7 +145,7 @@ class RagInterface:
             state_history: History,
 
             message: str,
-    ) -> (
+    ) -> Tuple[
             UUID,
             History,
 
@@ -150,8 +153,25 @@ class RagInterface:
             gr.update,  # history
             gr.update,  # image
             gr.update,  # counter
-    ):
-        """ Update the history, return the response in string format and update the PDF display. """
+    ]:
+        """
+        Start the inference with the RAG client and update the PDF display.
+
+        Args:
+            state_uuid (Optional[UUID]): The state UUID.
+            state_document (Optional[fitz.Document]): The state document.
+            state_history (History): The state history.
+            message (str): The user message of chat input.
+
+        Returns:
+            UUID: The state UUID.
+            History: The chat history.
+
+            gr.update: Update for the input component (Gradio component update).
+            gr.update: Update for the chat history component (Gradio component update).
+            gr.update: Update for the PDF display component (Gradio component update).
+            gr.update: Update for the counter component (Gradio component update).
+        """
 
         # Start inference with the RAG client
         state_uuid, response, list_document_context = self.rag_client.invoke(message, state_history, state_uuid)
@@ -191,11 +211,21 @@ class RagInterface:
             self,
             state_uuid: UUID,
             file_path: Optional[str]
-    ) -> (
-            UUID,
-            gr.update
-    ):
-        """ Load the PDF document to the RAG client. """
+    ) -> Tuple[
+        UUID,
+        gr.update
+    ]:
+        """
+        Load the PDF document to the RAG client.
+
+        Args:
+            state_uuid (UUID): The state UUID.
+            file_path (Optional[str]): The path to the PDF file.
+
+        Returns:
+            UUID: The state UUID.
+            gr.update: The PDF display component.
+        """
 
         if file_path is None:
             state_uuid = self.rag_client.clean_pdf(state_uuid)
@@ -216,15 +246,30 @@ class RagInterface:
             state_uuid: UUID,
             state_document: Optional[fitz.Document],
             state_history: History
-    ) -> (
+    ) -> Tuple[
             UUID,
             History,
 
             gr.update,  # history
             gr.update,  # image
             gr.update,  # counter
-    ):
-        """ Retry the last message. """
+    ]:
+        """
+        Retry the last message (user) in the chat history.
+
+        Args:
+            state_uuid (UUID): The state UUID.
+            state_document (Optional[fitz.Document]): The PDF document.
+            state_history (History): The chat history.
+
+        Returns:
+            UUID: The state UUID.
+            History: The state history.
+
+            gr.update: The chat history component.
+            gr.update: The PDF display component.
+            gr.update: The counter component.
+        """
 
         if len(state_history) > 1:
             # Get the last user message
@@ -252,7 +297,7 @@ class RagInterface:
 
         return (
             state_uuid,  # state_uuid
-            state_history,  # history
+            state_history,  # state_history
 
             # updates
             gr.update(value=state_history),  # history
