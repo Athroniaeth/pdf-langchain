@@ -1,4 +1,3 @@
-import logging
 import os
 import tomllib
 from enum import StrEnum
@@ -6,11 +5,10 @@ from types import SimpleNamespace
 from typing import Optional, Tuple
 
 import typer
-from huggingface_hub.utils.logging import get_logger
 from loguru import logger
 from typer import Typer
 
-from src._logging import Level, set_level, set_level_logging
+from src._logging import Level, set_level
 from src.app import app
 
 cli = Typer(pretty_exceptions_enable=False, pretty_exceptions_show_locals=False, no_args_is_help=True)
@@ -20,9 +18,9 @@ cli = Typer(pretty_exceptions_enable=False, pretty_exceptions_show_locals=False,
 def callback(
     ctx: typer.Context,
     hf_token: str = typer.Option(None, envvar="HF_TOKEN", help="Access token for Hugging Face API."),
-    logging_level: Level = typer.Option(Level.DEBUG, help="Log level for application logs."),
-    logging_level_hf: Level = typer.Option(Level.INFO, help="Log level for Hugging Face logs."),
-    logging_level_other: Level = typer.Option(Level.INFO, help="Log level for application logs."),
+    logging_level: Level = typer.Option(Level.ERROR, help="Log level for application logs."),
+    logging_level_hf: Level = typer.Option(Level.ERROR, help="Log level for Hugging Face logs."),
+    logging_level_other: Level = typer.Option(Level.DEBUG, help="Log level for application logs."),
 ):
     """
     Initialize the CLI application context.
@@ -40,14 +38,18 @@ def callback(
     Returns:
         SimpleNamespace: Object containing application parameters.
     """
-    # Get the logger logging
-    hf_logger = get_logger()
-    other_logger = logging.getLogger("root")
-
     # Configure the logging system
+    logging_level = Level.INFO
     set_level(logging_level)
+
+    """for name, other_logger in logging.getLogger().manager.loggerDict.items():
+        if isinstance(other_logger, logging.Logger):
+            set_level_logging(other_logger, logging_level_other)
+
+    hf_logger = get_logger()
     set_level_logging(hf_logger, logging_level_hf)
-    set_level_logging(other_logger, logging_level_other)
+    hf_logger = get_logger("huggingface_hub")
+    set_level_logging(hf_logger, logging_level_hf)"""
 
     if hf_token is None:
         logger.exception("Missing Hugging Face token; pass --hf-token or set env[HF_TOKEN]")

@@ -1,6 +1,7 @@
 """Logging utilities for the application."""
 
 import functools
+import inspect
 import logging
 import os
 import sys
@@ -13,7 +14,8 @@ from src import LOGGING_PATH, PROJECT_PATH
 DEFAULT_FORMAT = (
     "<blue>{time:YYYY-MM-DD HH:mm:ss}</blue> | "
     "<level>{level: <6}</level> | <red>"
-    "<cyan>{file}</cyan>:"
+    "<cyan>{name}</cyan>:"
+    # "<cyan>{file}</cyan>:"
     "<cyan>{function}</cyan>:"
     "<cyan>{line}</cyan> - "
     "</red><level>{message}</level>"
@@ -33,21 +35,75 @@ class Level(StrEnum):
     EXCEPTION = "EXCEPTION"
 
 
+class StreamToLogger:
+    def __init__(self, level="INFO"):
+        self.level = level
+
+    def write(self, message):
+        message = message.strip()
+
+        if message:
+            depth = self.find_depth()
+            logger.opt(depth=depth).log(self.level, f"(PRINT) {message}")
+
+    @staticmethod
+    def find_depth():
+        """
+        Trouver la profondeur de l'appelant de l'application.
+
+        Notes:
+            On ignore la première profondeur car elle est liée à la classe StreamToLogger.
+            Tous les appelants de l'application sont dans le répertoire "src".
+        """
+        depth = 0
+        frame = inspect.currentframe().f_back
+
+        while frame:
+            # Obtenir le chemin du fichier appelant
+            filename = frame.f_code.co_filename
+
+            conditions = (
+                depth != 0,
+                "src" in filename.replace("\\", "/").split("/"),
+            )
+
+            if all(conditions):
+                return depth
+
+            frame = frame.f_back
+            depth += 1
+
+        # Si aucun fichier "src." n'est trouvé, utiliser la profondeur par défaut
+        return 1
+
+    def flush(self):
+        pass
+
+    def isatty(self):
+        """Return True if the stream is a tty (terminal)."""
+        return False
+
+
 class InterceptHandler(logging.Handler):
     def emit(self, record):
+        """
+
+        Notes:
+            depth = 1: logging:handle:1028
+            depth = 2: logging:callHandlers:1762
+            depth = 3: logging:handle:1700
+            depth = 4: logging:_log:1684
+            depth = 5: logging:LEVEL:15XX
+            depth = 6: is the real caller
+        """
         # Appliquer le prétraitement au message
         message = self.preprocess_message(record.getMessage())
 
         # Récupérer le niveau de log correspondant dans Loguru
-        level = logger.level(record.levelname).name if logger.level(record.levelname).name else "INFO"
+        level = logger.level(record.levelname).name if logger.level(record.levelname).name else "CRITICAL"
 
-        # Trouver l'origine de l'appel du message loggué
-        frame, depth = logging.currentframe(), 2
-        while frame.f_code.co_filename == logging.__file__:
-            frame = frame.f_back
-            depth += 1
-
-        logger.opt(depth=depth, exception=record.exc_info).log(level, message)
+        # Trouver l'origine de l'appel du message et le logger
+        logger.opt(depth=6, exception=record.exc_info).log(level, message)
 
     @staticmethod
     def preprocess_message(message):
@@ -62,7 +118,6 @@ class InterceptHandler(logging.Handler):
 
 def set_level(level: Level):
     """Set the logging level for all handlers."""
-    logger.info(f"Application change the logging level to '{level}'")
     loguru_level = logger._core.levels.get(level)  # noqa
 
     if loguru_level is None:
@@ -70,6 +125,9 @@ def set_level(level: Level):
 
     for index, handler in logger._core.handlers.items():  # noqa
         logger._core.handlers[index]._levelno = loguru_level.no  # noqa
+
+    # On augmente le niveau de log pour l'afficher même en production
+    logger.warning(f"Application change the logging level to '{level}'")
 
 
 def set_level_logging(custom_logger: logging.Logger, logging_level_loguru: Level):
@@ -89,7 +147,6 @@ def set_level_logging(custom_logger: logging.Logger, logging_level_loguru: Level
     logging_level = logging.getLevelName(logging_level_loguru)
 
     # Intercept stdout of the library with the corresponding level
-    custom_logger.addHandler(InterceptHandler())
     custom_logger.setLevel(logging_level)
 
 
@@ -149,20 +206,27 @@ def setup_logger(
         level (Level): The logging level for the application.
         format_ (str): The format of the logging message.
     """
-
     log_file = LOGGING_PATH / f"{name}.log"
 
-    # Refresh format loguru's native handler
+    # Remove default loguru's handler
     logger.remove()
+
+    # Add a new handler for file (will be use for stdout)
+    logger.add(log_file, rotation=rotation, retention=retention, compression="xz", format=format_, level=level)
+
     logger.add(
         sink=sys.stdout,
         format=format_,
         colorize=True,
-        level=level,
+        level=Level.ERROR,
     )
+    logging.basicConfig(handlers=[InterceptHandler()], level=level)
 
-    # Add a new handler for the logging file
-    logger.add(log_file, rotation=rotation, retention=retention, compression="xz", format=format_, level=level)
+    # Redirect stdout and stderr to loguru
+    sys.stdout = StreamToLogger(level="INFO")
+
+    # Change the level of the logger (else not working)
+    set_level(level)
 
     # Short the path by PROJECT_PATH (security ask to don't logging full path)
     short_path = log_file.relative_to(PROJECT_PATH)
