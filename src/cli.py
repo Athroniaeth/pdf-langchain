@@ -1,14 +1,15 @@
+import logging
 import os
 import tomllib
 from enum import StrEnum
 from types import SimpleNamespace
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 import typer
 from loguru import logger
 from typer import Typer
 
-from src._logging import Level, set_level
+from src._logging import Level, set_level, set_level_logging
 from src.app import app
 
 cli = Typer(pretty_exceptions_enable=False, pretty_exceptions_show_locals=False, no_args_is_help=True)
@@ -18,9 +19,8 @@ cli = Typer(pretty_exceptions_enable=False, pretty_exceptions_show_locals=False,
 def callback(
     ctx: typer.Context,
     hf_token: str = typer.Option(None, envvar="HF_TOKEN", help="Access token for Hugging Face API."),
-    logging_level: Level = typer.Option(Level.ERROR, help="Log level for application logs."),
-    logging_level_hf: Level = typer.Option(Level.ERROR, help="Log level for Hugging Face logs."),
-    logging_level_other: Level = typer.Option(Level.DEBUG, help="Log level for application logs."),
+    logging_level: Level = typer.Option(Level.INFO, help="Log level for application logs."),
+    ignore_logging: List[str] = typer.Option(["httpcore", "urllib3", "httpx"], help="Ignore logs from the given loggers."),
 ):
     """
     Initialize the CLI application context.
@@ -29,8 +29,7 @@ def callback(
         ctx (typer.Context): Command context.
         hf_token (str): Access token for Hugging Face API.
         logging_level (Level): Log level for application logs.
-        logging_level_hf (Level): Log level for Hugging Face logs.
-        logging_level_other (Level): Log level for application logs.
+        ignore_logging (List[str]): Ignore logs from the given loggers.
 
     Raises:
         typer.Exit: If Hugging Face token is missing.
@@ -38,26 +37,19 @@ def callback(
     Returns:
         SimpleNamespace: Object containing application parameters.
     """
-    # Configure the logging system
-    logging_level = Level.INFO
+    # Set the logging level for the application
     set_level(logging_level)
 
-    """for name, other_logger in logging.getLogger().manager.loggerDict.items():
-        if isinstance(other_logger, logging.Logger):
-            set_level_logging(other_logger, logging_level_other)
-
-    hf_logger = get_logger()
-    set_level_logging(hf_logger, logging_level_hf)
-    hf_logger = get_logger("huggingface_hub")
-    set_level_logging(hf_logger, logging_level_hf)"""
+    # Set WARNING for ignored loggers
+    for logger_name in ignore_logging:
+        logger_ignore = logging.getLogger(logger_name)
+        set_level_logging(logger_ignore, Level.WARNING)
 
     if hf_token is None:
         logger.exception("Missing Hugging Face token; pass --hf-token or set env[HF_TOKEN]")
         raise typer.Exit(1)
 
-    ctx.obj = SimpleNamespace(
-        hf_token=hf_token, logging_level=logging_level, logging_level_hf=logging_level_hf, logging_level_other=logging_level_other
-    )
+    ctx.obj = SimpleNamespace(hf_token=hf_token, logging_level=logging_level)
 
 
 def conf_callback(ctx: typer.Context, param: typer.CallbackParam, filepath: str) -> str:

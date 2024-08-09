@@ -13,13 +13,19 @@ from src import LOGGING_PATH, PROJECT_PATH
 
 DEFAULT_FORMAT = (
     "<blue>{time:YYYY-MM-DD HH:mm:ss}</blue> | "
-    "<level>{level: <6}</level> | <red>"
-    "<cyan>{name}</cyan>:"
-    # "<cyan>{file}</cyan>:"
+    "<level>{level: <8}</level> | <red>"
+    "<cyan>{extra[short_name]}</cyan>."
+    "<cyan>{file}</cyan>"
     "<cyan>{function}</cyan>:"
     "<cyan>{line}</cyan> - "
     "</red><level>{message}</level>"
 )
+
+
+def custom_filter(record):
+    """Custom filter for loguru, allow to transform module name to logger name."""
+    record["extra"]["short_name"] = record["name"].split(".")[0]
+    return True
 
 
 class Level(StrEnum):
@@ -132,7 +138,7 @@ def set_level(level: Level):
 
 def set_level_logging(custom_logger: logging.Logger, logging_level_loguru: Level):
     """Allow to loguru to intercept stdout of any library that use logging module."""
-    logger.info(f"Application change the logging level of '{custom_logger.name}' to '{logging_level_loguru}'")
+    logger.warning(f"Application change the logging level of '{custom_logger.name}' to '{logging_level_loguru}'")
 
     # This loguru_level don't have a corresponding logging_level
     switcher = {
@@ -190,11 +196,11 @@ def setup_security(desired_permissions: int = 0o750):
 
 
 def setup_logger(
-    name: str = "app",
-    rotation: str = "06:00",
-    retention: str = "30 days",
-    level: Level = Level.DEBUG,
-    format_: str = DEFAULT_FORMAT,
+        name: str = "app",
+        rotation: str = "06:00",
+        retention: str = "30 days",
+        level: Level = Level.DEBUG,
+        format_: str = DEFAULT_FORMAT,
 ):
     """
     Setup the logger for the application.
@@ -212,13 +218,15 @@ def setup_logger(
     logger.remove()
 
     # Add a new handler for file (will be use for stdout)
-    logger.add(log_file, rotation=rotation, retention=retention, compression="xz", format=format_, level=level)
+    logger.add(log_file, rotation=rotation, retention=retention, compression="xz", format=format_, level=level,
+               filter=custom_filter, )
 
     logger.add(
         sink=sys.stdout,
         format=format_,
         colorize=True,
         level=Level.ERROR,
+        filter=custom_filter,
     )
     logging.basicConfig(handlers=[InterceptHandler()], level=level)
 
