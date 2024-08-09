@@ -1,7 +1,7 @@
-import logging
 from typing import Optional
 
 import gradio
+from loguru import logger
 
 from src.components import RagInterface
 
@@ -31,7 +31,7 @@ def app(
     Returns:
         None
     """
-    logging.debug("Starting the Gradio application")
+    logger.debug("Starting the Gradio application")
 
     css = """
         #counter input { text-align: center; }

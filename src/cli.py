@@ -6,9 +6,11 @@ from types import SimpleNamespace
 from typing import Optional, Tuple
 
 import typer
+from huggingface_hub.utils.logging import get_logger
+from loguru import logger
 from typer import Typer
 
-from src._logging import Level, clean_logging, set_logging_level
+from src._logging import Level, set_level, set_level_logging
 from src.app import app
 
 cli = Typer(pretty_exceptions_enable=False, pretty_exceptions_show_locals=False, no_args_is_help=True)
@@ -18,9 +20,9 @@ cli = Typer(pretty_exceptions_enable=False, pretty_exceptions_show_locals=False,
 def callback(
     ctx: typer.Context,
     hf_token: str = typer.Option(None, envvar="HF_TOKEN", help="Access token for Hugging Face API."),
-    logging_level: Level = typer.Option(Level.INFO, help="Log level for application logs."),
+    logging_level: Level = typer.Option(Level.DEBUG, help="Log level for application logs."),
     logging_level_hf: Level = typer.Option(Level.INFO, help="Log level for Hugging Face logs."),
-    logging_level_other: Level = typer.Option(Level.WARNING, help="Log level for other logs (urllib3, httpcore, ChromaDB)."),
+    logging_level_other: Level = typer.Option(Level.INFO, help="Log level for application logs."),
 ):
     """
     Initialize the CLI application context.
@@ -30,7 +32,7 @@ def callback(
         hf_token (str): Access token for Hugging Face API.
         logging_level (Level): Log level for application logs.
         logging_level_hf (Level): Log level for Hugging Face logs.
-        logging_level_other (Level): Log level for other logs (urllib3, httpcore, ChromaDB).
+        logging_level_other (Level): Log level for application logs.
 
     Raises:
         typer.Exit: If Hugging Face token is missing.
@@ -38,17 +40,22 @@ def callback(
     Returns:
         SimpleNamespace: Object containing application parameters.
     """
-    clean_logging(logging_level_other)
+    # Get the logger logging
+    hf_logger = get_logger()
+    other_logger = logging.getLogger("root")
 
-    # Set the logging level for the application
-    set_logging_level("root", logging_level)
-    set_logging_level("transformers", logging_level_hf)
+    # Configure the logging system
+    set_level(logging_level)
+    set_level_logging(hf_logger, logging_level_hf)
+    set_level_logging(other_logger, logging_level_other)
 
     if hf_token is None:
-        logging.exception("Missing Hugging Face token; pass --hf-token or set env[HF_TOKEN]")
+        logger.exception("Missing Hugging Face token; pass --hf-token or set env[HF_TOKEN]")
         raise typer.Exit(1)
 
-    ctx.obj = SimpleNamespace(hf_token=hf_token, logging_level=logging_level)
+    ctx.obj = SimpleNamespace(
+        hf_token=hf_token, logging_level=logging_level, logging_level_hf=logging_level_hf, logging_level_other=logging_level_other
+    )
 
 
 def conf_callback(ctx: typer.Context, param: typer.CallbackParam, filepath: str) -> str:
@@ -144,7 +151,6 @@ def get_info_environment(
 def start(
     ctx: typer.Context = typer.Option(None, callback=callback, is_eager=True),
     config: str = typer.Option("", callback=conf_callback, is_eager=True),
-    # noqa: Parameter 'config' value is not used
     environment: Environment = typer.Option(Environment.DEVELOPMENT, envvar="ENVIRONMENT", help="Environnement d'exécution."),
     ssl_keyfile: str = typer.Option(None, envvar="SSL_KEYFILE", help="Fichier de clé SSL."),
     ssl_certfile: str = typer.Option(None, envvar="SSL_CERTFILE", help="Fichier de certificat SSL."),
@@ -153,7 +159,7 @@ def start(
     """Start the server with the given environment."""
 
     # Get the environment information
-    logging.info(f"Environment: {environment}")
+    logger.info(f"Environment: {environment}")
     host, port, ssl_keyfile, ssl_certfile = get_info_environment(environment, ssl_keyfile, ssl_certfile)
 
     # Use 'run' command to start the server
@@ -192,7 +198,7 @@ def run(
 
     # Log the environment information
     ssl = bool(ssl_keyfile and ssl_certfile)
-    logging.info(f"{host=}, {port=}, {ssl=}")
+    logger.info(f"{host=}, {port=}, {ssl=}")
 
     # Run the Gradio application with the given environment
     app(

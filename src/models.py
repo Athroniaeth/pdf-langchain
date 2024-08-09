@@ -1,4 +1,3 @@
-import logging
 import os
 import time
 from functools import lru_cache, wraps
@@ -6,6 +5,7 @@ from typing import Dict, Optional
 
 from langchain_core.language_models import BaseLLM
 from langchain_huggingface import HuggingFaceEndpoint
+from loguru import logger
 
 
 @lru_cache(maxsize=1)
@@ -38,7 +38,7 @@ def get_llm_model(
         models_kwargs=models_kwargs,
     )
 
-    logging.debug(f'Model "{model_id}" loaded successfully.')
+    logger.debug(f'Model "{model_id}" loaded successfully.')
     llm_model.name = model_id
 
     return llm_model
@@ -51,7 +51,7 @@ def _get_llm_model_hf_cloud(
     models_kwargs: Optional[dict] = None,
 ):
     """Load a model from Hugging Face Cloud."""
-    logging.debug(f"Loading model '{model_id}' from Hugging Face Cloud.")
+    logger.debug(f"Loading model '{model_id}' from Hugging Face Cloud.")
 
     llm_model = HuggingFaceEndpoint(
         repo_id=model_id,
@@ -69,13 +69,13 @@ def log_inference(model_id: str):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            logging.debug(f"Inference of model '{model_id}' started. (function: {func.__name__})")
+            logger.debug(f"Inference of model '{model_id}' started. (function: {func.__name__})")
             time_start = time.time()
 
             result = func(*args, **kwargs)
 
             time_end = time.time()
-            logging.debug(f"Inference takes {time_end - time_start:.2f} seconds.")
+            logger.debug(f"Inference takes {time_end - time_start:.2f} seconds.")
             return result
 
         return wrapper

@@ -1,4 +1,3 @@
-import logging
 import uuid
 from typing import Optional
 from uuid import UUID
@@ -11,6 +10,7 @@ from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_core.language_models import BaseLLM
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from loguru import logger
 
 from src import DATABASE_PATH
 from src._typing import History
@@ -171,7 +171,7 @@ class RagClient:
         llm_output = pipeline_output["answer"]
         list_document_context = pipeline_output["context"]
 
-        logging.debug(f'Result of llm model :\n"""\n{llm_output}\n"""')
+        logger.debug(f'Result of llm model :\n"""\n{llm_output}\n"""')
 
         return state_uuid, llm_output, list_document_context
 
