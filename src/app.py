@@ -3,7 +3,7 @@ from typing import Optional
 
 import gradio
 
-from src.components.rag_interface import RagInterface
+from src.components import RagInterface
 
 
 def app(

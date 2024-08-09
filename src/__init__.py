@@ -7,3 +7,4 @@ ENV_PATH = PROJECT_PATH / ".env"
 
 # Project specific global variables
 DATABASE_PATH = PROJECT_PATH / "db"
+LOGGING_PATH = PROJECT_PATH / "logs"

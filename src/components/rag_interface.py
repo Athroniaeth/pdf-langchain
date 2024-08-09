@@ -12,8 +12,7 @@ from src import ENV_PATH
 from src._pymupdf import highlight_text
 from src._typing import Examples, History
 from src.client import RagClient
-from src.components import PDFReader
-from src.components.chat_interface import ChatInterface
+from src.components import ChatInterface, PDFReader
 
 
 class RagInterface:
