@@ -196,11 +196,11 @@ def setup_security(desired_permissions: int = 0o750):
 
 
 def setup_logger(
-        name: str = "app",
-        rotation: str = "06:00",
-        retention: str = "30 days",
-        level: Level = Level.DEBUG,
-        format_: str = DEFAULT_FORMAT,
+    name: str = "app",
+    rotation: str = "06:00",
+    retention: str = "30 days",
+    level: Level = Level.DEBUG,
+    format_: str = DEFAULT_FORMAT,
 ):
     """
     Setup the logger for the application.
@@ -218,8 +218,15 @@ def setup_logger(
     logger.remove()
 
     # Add a new handler for file (will be use for stdout)
-    logger.add(log_file, rotation=rotation, retention=retention, compression="xz", format=format_, level=level,
-               filter=custom_filter, )
+    logger.add(
+        log_file,
+        rotation=rotation,
+        retention=retention,
+        compression="xz",
+        format=format_,
+        level=level,
+        filter=custom_filter,
+    )
 
     logger.add(
         sink=sys.stdout,

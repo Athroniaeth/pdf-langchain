@@ -14,13 +14,15 @@ from src.app import app
 
 cli = Typer(pretty_exceptions_enable=False, pretty_exceptions_show_locals=False, no_args_is_help=True)
 
+LOGGER_TO_VERBOSE = ["httpcore", "urllib3", "httpx"]
+
 
 @cli.callback()
 def callback(
     ctx: typer.Context,
     hf_token: str = typer.Option(None, envvar="HF_TOKEN", help="Access token for Hugging Face API."),
     logging_level: Level = typer.Option(Level.INFO, help="Log level for application logs."),
-    ignore_logging: List[str] = typer.Option(["httpcore", "urllib3", "httpx"], help="Ignore logs from the given loggers."),
+    ignore_logging: List[str] = typer.Option(LOGGER_TO_VERBOSE, help="Ignore logs from the given loggers."),
 ):
     """
     Initialize the CLI application context.
