@@ -1,19 +1,25 @@
 import os
 import time
 from functools import lru_cache, wraps
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
+from gradio import ChatMessage
+from langchain import hub
 from langchain_core.language_models import BaseLLM
+from langchain_core.prompts import SystemMessagePromptTemplate, AIMessagePromptTemplate, ChatPromptTemplate
 from langchain_huggingface import HuggingFaceEndpoint
 from loguru import logger
+from transformers import AutoTokenizer, PreTrainedTokenizerFast
+
+from src._typing import History
 
 
 @lru_cache(maxsize=1)
 def get_llm_model(
-    model_id: str,
-    hf_token: Optional[str] = None,
-    max_new_tokens=512,
-    **models_kwargs: Dict,
+        model_id: str,
+        hf_token: Optional[str] = None,
+        max_new_tokens=512,
+        **models_kwargs: Dict,
 ) -> BaseLLM:
     """
     Load a CausalLM model (local or cloud).
@@ -45,10 +51,10 @@ def get_llm_model(
 
 
 def _get_llm_model_hf_cloud(
-    model_id: str,
-    hf_token: str,
-    max_new_tokens=512,
-    models_kwargs: Optional[dict] = None,
+        model_id: str,
+        hf_token: str,
+        max_new_tokens=512,
+        models_kwargs: Optional[dict] = None,
 ):
     """Load a model from Hugging Face Cloud."""
     logger.debug(f"Loading model '{model_id}' from Hugging Face Cloud.")
@@ -81,3 +87,51 @@ def log_inference(model_id: str):
         return wrapper
 
     return decorator
+
+
+def apply_chat_template(
+        history: History,
+        template: ChatPromptTemplate,
+        tokenizer: Union[AutoTokenizer, PreTrainedTokenizerFast]
+) -> str:
+    chat = []
+
+    for chat_message in template.messages:
+        if isinstance(chat_message, SystemMessagePromptTemplate):
+            role = "system"
+        elif isinstance(chat_message, AIMessagePromptTemplate):
+            role = "assistant"
+        else:
+            role = "user"
+
+        content = chat_message.prompt.template
+
+        chat.append({
+            "role": role,
+            "content": content,
+        })
+
+    for chat_message in history:
+        role = chat_message.role
+        content = chat_message.content
+
+        chat.append({
+            "role": role,
+            "content": content,
+        })
+
+    return tokenizer.apply_chat_template(chat, tokenize=False)
+
+
+if __name__ == "__main__":
+    history = [
+        ChatMessage(role="user", content="Hello, how are you?"),
+        ChatMessage(role="assistant", content="I'm doing great. How can I help you today?"),
+        ChatMessage(role="user", content="I'd like to show off how chat templating works!"),
+        ChatMessage(role="assistant", content="I'm doing great. How can I help you today?"),
+    ]
+
+    chat_template = hub.pull("athroniaeth/rag-chat-template")
+    tokenizer = AutoTokenizer.from_pretrained("meta-llama/Meta-Llama-3.1-8B-Instruct")
+
+    history_to_template(history, chat_template, tokenizer)

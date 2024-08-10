@@ -2,6 +2,7 @@ import uuid
 from typing import Optional
 from uuid import UUID
 
+from gradio import ChatMessage
 from langchain import hub
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.retrieval import create_retrieval_chain
@@ -11,36 +12,11 @@ from langchain_core.language_models import BaseLLM
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from loguru import logger
+from transformers import AutoTokenizer
 
 from src import DATABASE_PATH
 from src._typing import History
-from src.models import get_llm_model
-
-
-def history_to_template(history: History, message: str) -> str:
-    """
-    Convert the history of chat messages to a template for LLM.
-
-    Args:
-        history (History): List of chat messages.
-        message (str): Current message from user.
-
-    Returns:
-        str: Template for LLM.
-    """
-    query = ""
-    for chat_message in history:
-        role = chat_message.role
-        content = chat_message.content
-
-        if role == "user":
-            query += f"User: {content}\n\n"
-
-        elif role in ["assistant", "system"]:
-            query += f"Assistant: {content}\n\n"
-
-    query += f"User: {message}\n\nAssistant:"
-    return query
+from src.models import get_llm_model, apply_chat_template
 
 
 class RagClient:
@@ -60,19 +36,21 @@ class RagClient:
     """
 
     llm_model: BaseLLM
+    tokenizer: AutoTokenizer
     embeddings_model: HuggingFaceEmbeddings
 
     def __init__(
-        self,
-        model_id: str,
-        hf_token: str,
-        id_prompt_rag: str = "athroniaeth/rag-prompt-mistral-custom-2",
-        models_kwargs: dict = None,
+            self,
+            model_id: str,
+            hf_token: str,
+            id_prompt_rag: str = "athroniaeth/rag-chat-template",  # Todo : Permettre de modifier cela dans le CLI
+            models_kwargs: dict = None,
     ):
         if models_kwargs is None:
             models_kwargs = {"max_length": 512}
 
         self.llm_model = get_llm_model(model_id=model_id, hf_token=hf_token, max_new_tokens=512, **models_kwargs)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_id)
 
         self.embeddings_model = HuggingFaceEmbeddings()
         self.prompt_rag = hub.pull(id_prompt_rag)
@@ -121,10 +99,10 @@ class RagClient:
         return user_chroma_client
 
     def invoke(
-        self,
-        message: str,
-        history: History,
-        state_uuid: Optional[UUID] = None,
+            self,
+            message: str,
+            history: History,
+            state_uuid: Optional[UUID] = None,
     ):
         """
         Gradio pipeline, invoke the RAG model.
@@ -160,7 +138,7 @@ class RagClient:
         pipeline = create_retrieval_chain(retreiver, combine_docs_chain)
 
         # Transform history to template for LLM
-        query = history_to_template(history, message)
+        query = self.transform_history(message, history)
 
         # Todo : Add inference logging decorator
         pipeline_output = pipeline.invoke(
@@ -186,3 +164,26 @@ class RagClient:
                 collection.delete(ids)
 
         return state_uuid
+
+    @logger.catch
+    def transform_history(self, message: str, history: History) -> str:
+        """
+        Convert the history of chat messages to a template for LLM.
+
+        Args:
+            history (History): List of chat messages.
+            message (str): Current message from user.
+
+        Returns:
+            str: Template for LLM.
+        """
+        # Add the user message to the history
+        query = ChatMessage(role="user", content=message)
+
+        # Update the history
+        history.append(query)
+
+        # Transform history to template for LLM
+        template = apply_chat_template(history, self.prompt_rag, self.tokenizer)
+
+        return template
