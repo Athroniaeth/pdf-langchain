@@ -13,12 +13,12 @@ from src import LOGGING_PATH, PROJECT_PATH
 
 DEFAULT_FORMAT = (
     "<blue>{time:YYYY-MM-DD HH:mm:ss}</blue> | "
-    "<level>{level: <8}</level> | <red>"
+    "<level>{level}</level> | <red>"
     "<cyan>{extra[short_name]}</cyan>."
-    "<cyan>{file}</cyan>"
+    "<cyan>{file}</cyan>:"
     "<cyan>{function}</cyan>:"
-    "<cyan>{line}</cyan> - "
-    "</red><level>{message}</level>"
+    "</red><cyan>{line}</cyan>\n                    | "
+    "<level>{message}</level>\n"
 )
 
 
@@ -42,15 +42,21 @@ class Level(StrEnum):
 
 
 class StreamToLogger:
-    def __init__(self, level="INFO"):
-        self.level = level
+    def __init__(self, level_name="PRINT"):
+        self.level_name = level_name
+
+        # Récupérer la configuration du niveau INFO
+        info_level = logger.level("INFO")
+
+        # Créer un nouveau niveau nommé : "PRINT" équivalent à INFO (niveau 20)
+        logger.level("PRINT", no=info_level.no, color=info_level.color, icon=info_level.icon)
 
     def write(self, message):
         message = message.strip()
 
         if message:
             depth = self.find_depth()
-            logger.opt(depth=depth).log(self.level, f"(PRINT) {message}")
+            logger.opt(depth=depth).log(self.level_name, f"{message}")
 
     @staticmethod
     def find_depth():
@@ -133,12 +139,12 @@ def set_level(level: Level):
         logger._core.handlers[index]._levelno = loguru_level.no  # noqa
 
     # On augmente le niveau de log pour l'afficher même en production
-    logger.warning(f"Application change the logging level to '{level}'")
+    logger.success(f"Application change the logging level to '{level}'")
 
 
 def set_level_logging(custom_logger: logging.Logger, logging_level_loguru: Level):
     """Allow to loguru to intercept stdout of any library that use logging module."""
-    logger.warning(f"Application change the logging level of '{custom_logger.name}' to '{logging_level_loguru}'")
+    logger.success(f"Application change the logging level of '{custom_logger.name}' to '{logging_level_loguru}'")
 
     # This loguru_level don't have a corresponding logging_level
     switcher = {
@@ -238,7 +244,7 @@ def setup_logger(
     logging.basicConfig(handlers=[InterceptHandler()], level=level)
 
     # Redirect stdout and stderr to loguru
-    sys.stdout = StreamToLogger(level="INFO")
+    sys.stdout = StreamToLogger()
 
     # Change the level of the logger (else not working)
     set_level(level)
