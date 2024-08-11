@@ -89,39 +89,6 @@ def log_inference(model_id: str):
     return decorator
 
 
-def apply_chat_template(
-        history: History,
-        template: ChatPromptTemplate,
-        tokenizer: Union[AutoTokenizer, PreTrainedTokenizerFast]
-) -> str:
-    chat = []
-
-    for chat_message in template.messages:
-        if isinstance(chat_message, SystemMessagePromptTemplate):
-            role = "system"
-        elif isinstance(chat_message, AIMessagePromptTemplate):
-            role = "assistant"
-        else:
-            role = "user"
-
-        content = chat_message.prompt.template
-
-        chat.append({
-            "role": role,
-            "content": content,
-        })
-
-    for chat_message in history:
-        role = chat_message.role
-        content = chat_message.content
-
-        chat.append({
-            "role": role,
-            "content": content,
-        })
-
-    return tokenizer.apply_chat_template(chat, tokenize=False)
-
 
 if __name__ == "__main__":
     history = [

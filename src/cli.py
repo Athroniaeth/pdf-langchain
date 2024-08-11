@@ -178,7 +178,7 @@ def run(
     port: int = typer.Option(7860, envvar="PORT", help="Port sur lequel le serveur doit écouter."),
     ssl_keyfile: str = typer.Option(None, envvar="SSL_KEYFILE", help="Fichier de clé SSL."),
     ssl_certfile: str = typer.Option(None, envvar="SSL_CERTFILE", help="Fichier de certificat SSL."),
-    model_id: str = typer.Option("meta-llama/Meta-Llama-3.1-8B-Instruct", help="Identifiant HuggingFace du modèle LLM."),
+    model_id: str = typer.Option("mistralai/Mistral-7B-Instruct-v0.3", help="Identifiant HuggingFace du modèle LLM."),
 ):
     """Start the server with the given environment."""
 

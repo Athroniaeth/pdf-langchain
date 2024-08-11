@@ -166,7 +166,7 @@ class RagInterface:
         """
 
         # Start inference with the RAG client
-        state_uuid, response, list_document_context = self.rag_client.invoke(message, state_history, state_uuid)
+        state_uuid, response, list_document_context = self.rag_client.invoke(message, state_uuid)
 
         # Highlight the context in the PDF document
         if state_document is not None:

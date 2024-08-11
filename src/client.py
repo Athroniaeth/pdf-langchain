@@ -1,22 +1,50 @@
+import functools
 import uuid
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID
 
-from gradio import ChatMessage
 from langchain import hub
 from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.chains.history_aware_retriever import create_history_aware_retriever
 from langchain.chains.retrieval import create_retrieval_chain
+from langchain.retrievers import ContextualCompressionRetriever
 from langchain_chroma import Chroma
+from langchain_community.document_compressors import FlashrankRerank
 from langchain_community.document_loaders import PyMuPDFLoader
+from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.language_models import BaseLLM
+from langchain_core.messages import BaseMessage
+from langchain_core.runnables import RunnableWithMessageHistory
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from loguru import logger
+from pydantic import Field, BaseModel
 from transformers import AutoTokenizer
 
 from src import DATABASE_PATH
-from src._typing import History
-from src.models import get_llm_model, apply_chat_template
+from src.models import get_llm_model
+
+store = {}
+
+
+class InMemoryHistory(BaseChatMessageHistory, BaseModel):
+    """In memory implementation of chat message history."""
+    messages: List[BaseMessage] = Field(default_factory=list)
+
+    def add_messages(self, messages: List[BaseMessage]) -> None:
+        """Add a list of messages to the store"""
+        self.messages.extend(messages)
+
+    def clear(self) -> None:
+        self.messages = []
+
+
+def get_by_session_id(state_uuid: UUID, session_id: str = "") -> BaseChatMessageHistory:
+    """Get the chat history by session ID."""
+    # session_id is forced by LangChain but useless in this case
+    if state_uuid not in store:
+        store[state_uuid] = InMemoryHistory()
+    return store[state_uuid]
 
 
 class RagClient:
@@ -43,17 +71,20 @@ class RagClient:
             self,
             model_id: str,
             hf_token: str,
-            id_prompt_rag: str = "athroniaeth/rag-chat-template",  # Todo : Permettre de modifier cela dans le CLI
+            id_prompt_rag: str = "athroniaeth/rag-prompt-mistral-custom-2",  # Todo : Permettre de modifier cela dans le CLI
+            id_prompt_contextualize: str = "athroniaeth/contextualize-prompt",  # Todo : Permettre de modifier cela dans le CLI
             models_kwargs: dict = None,
     ):
         if models_kwargs is None:
-            models_kwargs = {"max_length": 512}
+            models_kwargs = {"max_length": 256}
 
         self.llm_model = get_llm_model(model_id=model_id, hf_token=hf_token, max_new_tokens=512, **models_kwargs)
         self.tokenizer = AutoTokenizer.from_pretrained(model_id)
 
         self.embeddings_model = HuggingFaceEmbeddings()
+
         self.prompt_rag = hub.pull(id_prompt_rag)
+        self.contextualize_q_prompt = hub.pull(id_prompt_contextualize)
 
     def process_pdf(self, file_path: str, state_uuid: Optional[UUID] = None) -> UUID:
         """
@@ -101,7 +132,6 @@ class RagClient:
     def invoke(
             self,
             message: str,
-            history: History,
             state_uuid: Optional[UUID] = None,
     ):
         """
@@ -130,19 +160,42 @@ class RagClient:
         db_vector = self.get_user_db(state_uuid)
 
         # Create a retriever from the user database
-        retreiver = db_vector.as_retriever(search_kwargs=search_kwargs)
+        """compressor = FlashrankRerank()
+        retriever = ContextualCompressionRetriever(
+            base_compressor=compressor,
+            base_retriever=db_vector.as_retriever(search_kwargs={'k': 3}),
+        )"""
+        retriever = db_vector.as_retriever(search_kwargs={'k': 3})
 
         # Create RAG pipeline, LangChain 'rag_chain' example "langchain\chains\retrieval.py"
-        combine_docs_chain = create_stuff_documents_chain(self.llm_model, self.prompt_rag)
+        combine_docs_chain = create_stuff_documents_chain(
+            self.llm_model,
+            self.prompt_rag,
+        )
 
-        pipeline = create_retrieval_chain(retreiver, combine_docs_chain)
+        history_aware_retriever = create_history_aware_retriever(
+            self.llm_model,
+            retriever,
+            self.contextualize_q_prompt
+        )
 
-        # Transform history to template for LLM
-        query = self.transform_history(message, history)
+        rag_chain = create_retrieval_chain(
+            history_aware_retriever,
+            combine_docs_chain
+        )
+
+        pipeline = RunnableWithMessageHistory(
+            rag_chain,
+            get_by_session_id,
+            input_messages_key="input",
+            history_messages_key="chat_history",
+            output_messages_key="answer",
+        )
 
         # Todo : Add inference logging decorator
         pipeline_output = pipeline.invoke(
-            input={"input": f"{query}"},
+            input={"input": f"{message}"},
+            config={"configurable": {"session_id": state_uuid}}
         )
 
         # Get the output from the pipeline
@@ -165,25 +218,20 @@ class RagClient:
 
         return state_uuid
 
-    @logger.catch
-    def transform_history(self, message: str, history: History) -> str:
-        """
-        Convert the history of chat messages to a template for LLM.
+    def clean_history(self, state_uuid: UUID) -> UUID:
+        """Gradio pipeline, clean the user chat history."""
+        state_uuid = self.get_unique_user_key(state_uuid)
+        user_history = get_by_session_id(state_uuid)
+        user_history.clear()
+        return state_uuid
 
-        Args:
-            history (History): List of chat messages.
-            message (str): Current message from user.
+    def undo_history(self, state_uuid: UUID) -> UUID:
+        """Gradio pipeline, undo the last message from the user chat history."""
+        state_uuid = self.get_unique_user_key(state_uuid)
+        user_history = get_by_session_id(state_uuid)
 
-        Returns:
-            str: Template for LLM.
-        """
-        # Add the user message to the history
-        query = ChatMessage(role="user", content=message)
+        if len(user_history.messages) > 0:
+            user_history.messages.pop()
+            user_history.messages.pop()
 
-        # Update the history
-        history.append(query)
-
-        # Transform history to template for LLM
-        template = apply_chat_template(history, self.prompt_rag, self.tokenizer)
-
-        return template
+        return state_uuid
