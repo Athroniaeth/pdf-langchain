@@ -1,27 +1,27 @@
-import functools
 import uuid
-from typing import Optional, List
+from typing import Optional, List, Tuple, Sequence
 from uuid import UUID
 
+from gradio import ChatMessage
 from langchain import hub
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.history_aware_retriever import create_history_aware_retriever
 from langchain.chains.retrieval import create_retrieval_chain
-from langchain.retrievers import ContextualCompressionRetriever
 from langchain_chroma import Chroma
-from langchain_community.document_compressors import FlashrankRerank
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.language_models import BaseLLM
-from langchain_core.messages import BaseMessage
+from langchain_core.messages import BaseMessage, AIMessage, HumanMessage
 from langchain_core.runnables import RunnableWithMessageHistory
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from loguru import logger
 from pydantic import Field, BaseModel
+from pymupdf import Document
 from transformers import AutoTokenizer
 
 from src import DATABASE_PATH
+from src._typing import History
 from src.models import get_llm_model
 
 store = {}
@@ -31,15 +31,46 @@ class InMemoryHistory(BaseChatMessageHistory, BaseModel):
     """In memory implementation of chat message history."""
     messages: List[BaseMessage] = Field(default_factory=list)
 
-    def add_messages(self, messages: List[BaseMessage]) -> None:
-        """Add a list of messages to the store"""
+    def add_message(self, message: BaseMessage) -> None:
+        """Add a message to the chat history."""
+        logger.debug(f"Adding message to history: {message}")
+        self.messages.append(message)
+
+    def add_messages(self, messages: Sequence[BaseMessage]) -> None:
+        """Add multiple messages to the chat history."""
+        logger.debug(f"Adding messages to history: {messages}")
         self.messages.extend(messages)
 
     def clear(self) -> None:
-        self.messages = []
+        """Clear the chat history."""
+        logger.debug("Clearing chat history")
+        self.messages.clear()
+
+    def to_gradio(self) -> History:
+        list_messages = []
+
+        for langchain_message in self.messages:
+            if isinstance(langchain_message, AIMessage):
+                content = langchain_message.content
+                gradio_message = ChatMessage(content=content, role="assistant")
+                list_messages.append(gradio_message)
+
+            if isinstance(langchain_message, HumanMessage):
+                content = langchain_message.content
+                gradio_message = ChatMessage(content=content, role="user")
+                list_messages.append(gradio_message)
+
+        return list_messages
 
 
-def get_by_session_id(state_uuid: UUID, session_id: str = "") -> BaseChatMessageHistory:
+def get_unique_user_key(state_uuid: Optional[UUID] = None) -> UUID:
+    """Gradio pipeline, get the unique user key."""
+    if state_uuid is None:
+        return uuid.uuid4()
+    return state_uuid
+
+
+def get_by_session_id(state_uuid: UUID) -> InMemoryHistory:
     """Get the chat history by session ID."""
     # session_id is forced by LangChain but useless in this case
     if state_uuid not in store:
@@ -71,8 +102,10 @@ class RagClient:
             self,
             model_id: str,
             hf_token: str,
-            id_prompt_rag: str = "athroniaeth/rag-prompt-mistral-custom-2",  # Todo : Permettre de modifier cela dans le CLI
-            id_prompt_contextualize: str = "athroniaeth/contextualize-prompt",  # Todo : Permettre de modifier cela dans le CLI
+            id_prompt_rag: str = "athroniaeth/rag-prompt-mistral-custom-2",
+            # Todo : Permettre de modifier cela dans le CLI
+            id_prompt_contextualize: str = "athroniaeth/contextualize-prompt",
+            # Todo : Permettre de modifier cela dans le CLI
             models_kwargs: dict = None,
     ):
         if models_kwargs is None:
@@ -99,7 +132,7 @@ class RagClient:
         """
 
         # Utiliser l'état utilisateur pour obtenir un identifiant unique
-        state_uuid = self.get_unique_user_key(state_uuid)
+        state_uuid = get_unique_user_key(state_uuid)
         user_db = self.get_user_db(state_uuid)
 
         # Code pour traiter le fichier PDF et mettre à jour user_db
@@ -111,13 +144,6 @@ class RagClient:
         user_db.add_documents(chunks)
 
         print(f"PDF processed for user with key {state_uuid}")
-        return state_uuid
-
-    @staticmethod
-    def get_unique_user_key(state_uuid: Optional[UUID] = None) -> UUID:
-        """Gradio pipeline, get the unique user key."""
-        if state_uuid is None:
-            return uuid.uuid4()
         return state_uuid
 
     def get_user_db(self, user_key: UUID) -> Chroma:
@@ -133,7 +159,7 @@ class RagClient:
             self,
             message: str,
             state_uuid: Optional[UUID] = None,
-    ):
+    ) -> Tuple[UUID, List[Document]]:
         """
         Gradio pipeline, invoke the RAG model.
 
@@ -156,15 +182,10 @@ class RagClient:
         }
 
         # Get PDF content from user database
-        state_uuid = self.get_unique_user_key(state_uuid)
+        state_uuid = get_unique_user_key(state_uuid)
         db_vector = self.get_user_db(state_uuid)
 
         # Create a retriever from the user database
-        """compressor = FlashrankRerank()
-        retriever = ContextualCompressionRetriever(
-            base_compressor=compressor,
-            base_retriever=db_vector.as_retriever(search_kwargs={'k': 3}),
-        )"""
         retriever = db_vector.as_retriever(search_kwargs={'k': 3})
 
         # Create RAG pipeline, LangChain 'rag_chain' example "langchain\chains\retrieval.py"
@@ -204,11 +225,11 @@ class RagClient:
 
         logger.debug(f'Result of llm model :\n"""\n{llm_output}\n"""')
 
-        return state_uuid, llm_output, list_document_context
+        return state_uuid, list_document_context
 
     def clean_pdf(self, state_uuid: UUID) -> UUID:
         """Gradio pipeline, clean the user database."""
-        state_uuid = self.get_unique_user_key(state_uuid)
+        state_uuid = get_unique_user_key(state_uuid)
         db_vector = self.get_user_db(state_uuid)
 
         for collection in db_vector._client.list_collections():  # noqa
@@ -218,20 +239,37 @@ class RagClient:
 
         return state_uuid
 
-    def clean_history(self, state_uuid: UUID) -> UUID:
+    def clear_history(self, state_uuid: UUID) -> Tuple[UUID, History]:
         """Gradio pipeline, clean the user chat history."""
-        state_uuid = self.get_unique_user_key(state_uuid)
+        state_uuid = get_unique_user_key(state_uuid)
         user_history = get_by_session_id(state_uuid)
         user_history.clear()
-        return state_uuid
+        return state_uuid, user_history.to_gradio()
 
-    def undo_history(self, state_uuid: UUID) -> UUID:
+    def undo_history(self, state_uuid: UUID) -> Tuple[UUID, History]:
         """Gradio pipeline, undo the last message from the user chat history."""
-        state_uuid = self.get_unique_user_key(state_uuid)
+        state_uuid = get_unique_user_key(state_uuid)
         user_history = get_by_session_id(state_uuid)
 
         if len(user_history.messages) > 0:
             user_history.messages.pop()
-            user_history.messages.pop()
+        else:
+            raise ValueError("No message to undo")
 
-        return state_uuid
+        return state_uuid, user_history.to_gradio()
+
+    def retry_history(self, state_uuid: UUID) -> Tuple[UUID, History]:
+        """Gradio pipeline, retry the last message from the user chat history."""
+        logger.debug(f"Retrying history for user with key '{state_uuid}'")
+
+        state_uuid = get_unique_user_key(state_uuid)
+        user_history = get_by_session_id(state_uuid)
+
+        if len(user_history.messages) > 1:
+            user_history.messages.pop()
+            user_history.messages.pop()
+        else:
+            raise ValueError("No message to retry")
+
+        logger.debug(f"History retried for user with key '{state_uuid}'")
+        return state_uuid, user_history.to_gradio()

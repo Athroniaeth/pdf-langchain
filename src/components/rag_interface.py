@@ -6,12 +6,11 @@ import fitz
 import gradio
 import gradio as gr
 from dotenv import load_dotenv
-from gradio import ChatMessage
 
 from src import ENV_PATH
 from src._pymupdf import highlight_text
-from src._typing import Examples, History
-from src.client import RagClient
+from src._typing import Examples
+from src.client import RagClient, get_unique_user_key, get_by_session_id
 from src.components import ChatInterface, PDFReader
 
 
@@ -38,10 +37,10 @@ class RagInterface:
     pdf_reader: PDFReader
 
     def __init__(
-        self,
-        model_id: str,
-        hf_token: str,
-        examples: Examples = None,
+            self,
+            model_id: str,
+            hf_token: str,
+            examples: Examples = None,
     ):
         if examples is None:
             examples = [
@@ -64,11 +63,6 @@ class RagInterface:
 
             with gradio.Column(scale=2):  # Prend 2/3 de la largeur
                 self.chat_interface = ChatInterface(examples=examples)
-                self.chat_interface.bind_events(
-                    activate_chat_input=False,
-                    activate_chat_submit=False,
-                    activate_button_retry=False,
-                )
 
     def bind_events(self):
         """Bind the events for the chat interface."""
@@ -78,12 +72,10 @@ class RagInterface:
             inputs=[
                 self.state_uuid,
                 self.pdf_reader.state_pdf,
-                self.chat_interface.state_history,
                 self.chat_interface.input,
             ],
             outputs=[
                 self.state_uuid,
-                self.chat_interface.state_history,
                 self.chat_interface.input,
                 self.chat_interface.chat,
                 self.pdf_reader.display,
@@ -96,12 +88,10 @@ class RagInterface:
             inputs=[
                 self.state_uuid,
                 self.pdf_reader.state_pdf,
-                self.chat_interface.state_history,
                 self.chat_interface.input,
             ],
             outputs=[
                 self.state_uuid,
-                self.chat_interface.state_history,
                 self.chat_interface.input,
                 self.chat_interface.chat,
                 self.pdf_reader.display,
@@ -114,15 +104,25 @@ class RagInterface:
             inputs=[
                 self.state_uuid,
                 self.pdf_reader.state_pdf,
-                self.chat_interface.state_history,
             ],
             outputs=[
                 self.state_uuid,
-                self.chat_interface.state_history,
                 self.chat_interface.chat,
                 self.pdf_reader.display,
                 self.pdf_reader.counter,
             ],
+        )
+
+        self.chat_interface.clear_button.click(
+            fn=self.clear,
+            inputs=[self.state_uuid],
+            outputs=[self.state_uuid, self.chat_interface.chat],
+        )
+
+        self.chat_interface.undo_button.click(
+            fn=self.undo,
+            inputs=[self.state_uuid],
+            outputs=[self.state_uuid, self.chat_interface.chat],
         )
 
         # Refresh pdf display for highlighting text
@@ -133,14 +133,12 @@ class RagInterface:
         )
 
     def echo(
-        self,
-        state_uuid: Optional[UUID],
-        state_document: Optional[fitz.Document],
-        state_history: History,
-        message: str,
+            self,
+            state_uuid: Optional[UUID],
+            state_document: Optional[fitz.Document],
+            message: str,
     ) -> Tuple[
         UUID,
-        History,
         gr.update,  # input
         gr.update,  # history
         gr.update,  # image
@@ -152,7 +150,6 @@ class RagInterface:
         Args:
             state_uuid (Optional[UUID]): The state UUID.
             state_document (Optional[fitz.Document]): The state document.
-            state_history (History): The state history.
             message (str): The user message of chat input.
 
         Returns:
@@ -166,7 +163,8 @@ class RagInterface:
         """
 
         # Start inference with the RAG client
-        state_uuid, response, list_document_context = self.rag_client.invoke(message, state_uuid)
+        state_uuid, list_document_context = self.rag_client.invoke(message, state_uuid)
+        user_history = get_by_session_id(state_uuid)
 
         # Highlight the context in the PDF document
         if state_document is not None:
@@ -175,14 +173,6 @@ class RagInterface:
                 page = document_context.metadata["page"]
                 state_document = highlight_text(state_document, text, page)
 
-        # Create the chat messages
-        user_message = ChatMessage("user", message)
-        assistant_message = ChatMessage("assistant", response)
-
-        # Append the messages to the history
-        state_history.append(user_message)
-        state_history.append(assistant_message)
-
         # Update the PDF display (highlight text)
         _, _, update_image, update_label = self.pdf_reader.navigate_pdf(state_document, 0, 0)
 
@@ -190,10 +180,9 @@ class RagInterface:
         return (
             # states
             state_uuid,  # state_uuid
-            state_history,  # history
             # updates
             gr.update(value=""),  # input
-            gr.update(value=state_history),  # chat
+            gr.update(value=user_history.to_gradio()),  # chat
             update_image,  # image
             update_label,  # counter
         )
@@ -225,11 +214,69 @@ class RagInterface:
         # Show loading to the user
         return state_uuid, gr.update()
 
-    def retry(
-        self, state_uuid: UUID, state_document: Optional[fitz.Document], state_history: History
+    def clear(
+            self,
+            state_uuid: UUID,
     ) -> Tuple[
         UUID,
-        History,
+        gr.update,  # history
+    ]:
+        """
+        Clear the chat history and the PDF display.
+
+        Args:
+            state_uuid (UUID): The state UUID.
+
+        Returns:
+            UUID: The state UUID.
+            History: The chat history.
+
+            gr.update: The chat history component.
+        """
+        state_uuid = get_unique_user_key(state_uuid)
+        user_history = get_by_session_id(state_uuid)
+
+        # Clear the PDF display
+        user_history.messages.clear()
+
+        return (
+            state_uuid,  # state_uuid
+            user_history.to_gradio(),  # history
+        )
+
+    def undo(self, state_uuid: UUID) -> Tuple[
+        UUID,
+        gr.update,  # history
+    ]:
+        """
+        Undo the last message (user) in the chat history.
+
+        Args:
+            state_uuid (UUID): The state UUID.
+
+        Returns:
+            UUID: The state UUID.
+            gr.update: The chat history component.
+        """
+        state_uuid = get_unique_user_key(state_uuid)
+        user_history = get_by_session_id(state_uuid)
+
+        # Undo the last message (get the uuid if not exist)
+        if len(user_history.messages) > 1:
+            _ = user_history.messages.pop()
+            _ = user_history.messages.pop()
+        else:
+            raise gr.Error("No message to undo")
+
+        return (
+            state_uuid,  # state_uuid
+            gr.update(value=user_history.to_gradio()),  # update: history
+        )
+
+    def retry(
+            self, state_uuid: UUID, state_document: Optional[fitz.Document],
+    ) -> Tuple[
+        UUID,
         gr.update,  # history
         gr.update,  # image
         gr.update,  # counter
@@ -240,7 +287,6 @@ class RagInterface:
         Args:
             state_uuid (UUID): The state UUID.
             state_document (Optional[fitz.Document]): The PDF document.
-            state_history (History): The chat history.
 
         Returns:
             UUID: The state UUID.
@@ -251,36 +297,30 @@ class RagInterface:
             gr.update: The counter component.
         """
 
-        if len(state_history) > 1:
-            # Get the last user message
-            message = state_history[-2].content
+        state_uuid = get_unique_user_key(state_uuid)
+        user_history = get_by_session_id(state_uuid)
 
-            # Remove the last two messages (user and assistant)
-            state_history = state_history[:-2]
+        if len(user_history.messages) <= 1:
+            raise gr.Error("No message to retry")
 
-            # Restart the inference with the last user message
-            state_uuid, state_history, _, update_chat, update_image, update_counter = self.echo(state_uuid, state_document, state_history, message)
+        # Remove last answer, get the last user message
+        _ = user_history.messages.pop()
+        message = user_history.messages.pop()
 
-            # Retry the last message (user)
-            return (
-                state_uuid,  # state_uuid
-                state_history,  # history
-                # updates
-                update_chat,  # history
-                update_image,  # image
-                update_counter,  # counter
-            )
+        # Restart the inference with the last user message
+        state_uuid, _, update_chat, update_image, update_counter = self.echo(
+            state_uuid,
+            state_document,
+            message.content,
+        )
 
-        # Alert the user that there is no message to retry
-        gr.Warning("There is no message to retry.")
-
+        # Retry the last message (user)
         return (
             state_uuid,  # state_uuid
-            state_history,  # state_history
             # updates
-            gr.update(value=state_history),  # history
-            gr.update(),  # image
-            gr.update(),  # counter
+            update_chat,  # history
+            update_image,  # image
+            update_counter,  # counter
         )
 
 
