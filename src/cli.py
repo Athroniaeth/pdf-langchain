@@ -95,7 +95,7 @@ def get_info_environment(
     environment: Environment = Environment.DEVELOPMENT,
     ssl_keyfile: Optional[str] = None,
     ssl_certfile: Optional[str] = None,
-) -> Tuple[str, int, str, str]:
+) -> Tuple[str, int, str, str, str, bool]:
     """
     Get the information of the environment.
 
@@ -109,6 +109,8 @@ def get_info_environment(
         int: The port to use for the server.
         str: The SSL key file path.
         str: The SSL certificate file path.
+        str: The maximum file size for upload.
+        bool: Enable monitoring for the application.
     """
     match environment:
         case Environment.DEVELOPMENT:
@@ -116,11 +118,15 @@ def get_info_environment(
             port = 7860
             ssl_keyfile = None
             ssl_certfile = None
+            max_file_size = "100mb"
+            enable_monitoring = False
 
         case Environment.PRODUCTION:
             list_raises = []
             host = "0.0.0.0"
             port = 7860
+            max_file_size = "1mb"
+            enable_monitoring = True
 
             if not ssl_keyfile:
                 list_raises.append(EnvironmentError("'SSL_KEYFILE' environment variable not set"))
@@ -140,7 +146,7 @@ def get_info_environment(
         case _:
             raise ValueError(f"Environment '{environment}' not supported")
 
-    return host, port, ssl_keyfile, ssl_certfile
+    return host, port, ssl_keyfile, ssl_certfile, max_file_size, enable_monitoring
 
 
 @cli.command()
@@ -170,7 +176,7 @@ def start(
 
     # Get the environment information
     logger.info(f"Environment: {environment}")
-    host, port, ssl_keyfile, ssl_certfile = get_info_environment(environment, ssl_keyfile, ssl_certfile)
+    host, port, ssl_keyfile, ssl_certfile, max_file_size, enable_monitoring = get_info_environment(environment, ssl_keyfile, ssl_certfile)
 
     # Use 'run' command to start the server
     run(
@@ -181,6 +187,8 @@ def start(
         ssl_keyfile=ssl_keyfile,
         ssl_certfile=ssl_certfile,
         model_id=model_id,
+        max_file_size=max_file_size,
+        enable_monitoring=enable_monitoring,
     )
 
 
@@ -193,6 +201,8 @@ def run(
     ssl_keyfile: str = typer.Option(None, envvar="SSL_KEYFILE", help="Fichier de clé SSL."),
     ssl_certfile: str = typer.Option(None, envvar="SSL_CERTFILE", help="Fichier de certificat SSL."),
     model_id: str = typer.Option("mistralai/Mistral-7B-Instruct-v0.3", help="Identifiant HuggingFace du modèle LLM."),
+    max_file_size: str = typer.Option("1mb", envvar="MAX_FILE_SIZE", help="Taille maximale du fichier à télécharger."),
+    enable_monitoring: bool = typer.Option(True, envvar="ENABLE_MONITORING", help="Activer la surveillance de l'application."),
 ):
     """
     Start the server with the given environment.
@@ -205,6 +215,8 @@ def run(
         ssl_keyfile (str): The SSL key file path.
         ssl_certfile (str): The SSL certificate file path.
         model_id (str): The model ID of Hugging Face LLM.
+        max_file_size (str): The maximum file size for upload.
+        enable_monitoring (bool): Enable monitoring for the application.
 
     Raises:
         FileNotFoundError: If the SSL key or certificate file is not found.
@@ -233,6 +245,8 @@ def run(
         port=port,
         ssl_keyfile=ssl_keyfile,
         ssl_certfile=ssl_certfile,
+        max_file_size=max_file_size,
+        enable_monitoring=enable_monitoring,
     )
 
 

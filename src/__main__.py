@@ -26,14 +26,19 @@ def main():
     # Load the environment variables
     load_dotenv()
 
-    # Load the logging system
-    setup_logger(level=Level.DEBUG)
-
-    # Setup the security for the logging folder
-    setup_security(desired_permissions=0o750)
+    # Get the arguments for the program
+    arguments = ' '.join(sys.argv[1:])
 
     # Add the user command to the logs (first is src path)
-    logger.info(f"Command for launch application is \"{' '.join(sys.argv[1:])}\"")
+    logger.info(f"Arguments passed: {arguments}")
+
+    # Else print of Typer is buggy
+    if "--help" not in arguments:
+        # Load the logging system
+        setup_logger(level=Level.DEBUG)
+
+        # Setup the security for the logging folder
+        setup_security(desired_permissions=0o750)
 
     try:
         cli()
