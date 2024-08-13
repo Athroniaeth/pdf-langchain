@@ -13,7 +13,8 @@
 
 This project is example Chat-PDF, a web application that lets you chat with any PDF. This project uses LangChain for the
 prompt engineering, Gradio for the web user interface and Gradio to create the CLI for production.
-![presentation.png](static/presentation.png)
+
+![presentation_1.png](docs/static/presentation_1.png)
 
 ## Installation
 
