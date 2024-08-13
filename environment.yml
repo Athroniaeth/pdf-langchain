@@ -35,6 +35,7 @@ dependencies:
   - fastapi-cli
   - ffmpy
   - filelock
+  - FlashRank
   - flatbuffers
   - fonttools
   - frozenlist
@@ -68,6 +69,7 @@ dependencies:
   - langchain-text-splitters
   - langchainhub
   - langsmith
+  - loguru
   - markdown-it-py
   - MarkupSafe
   - marshmallow
@@ -128,6 +130,7 @@ dependencies:
   - scipy
   - semantic-version
   - sentence-transformers
+  - sentencepiece
   - setuptools
   - shellingham
   - six
@@ -154,6 +157,7 @@ dependencies:
   - websocket-client
   - websockets
   - wheel
+  - win32-setctime
   - wrapt
   - yarl
   - zipp
