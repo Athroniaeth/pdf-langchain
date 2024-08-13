@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from src import ENV_PATH
 from src._pymupdf import highlight_text
 from src._typing import Examples
-from src.client import RagClient, get_unique_user_key, get_by_session_id
+from src.client import RagClient, get_by_session_id, get_unique_user_key
 from src.components import ChatInterface, PDFReader
 
 
@@ -48,6 +48,7 @@ class RagInterface:
                 ["Can you summarize the document?"],
             ]
 
+        # Unique user identifier
         self.state_uuid = gr.State()
 
         # Global client for all users, also not gr.State
@@ -214,8 +215,8 @@ class RagInterface:
         # Show loading to the user
         return state_uuid, gr.update()
 
+    @staticmethod
     def clear(
-            self,
             state_uuid: UUID,
     ) -> Tuple[
         UUID,
@@ -223,14 +224,11 @@ class RagInterface:
     ]:
         """
         Clear the chat history and the PDF display.
-
         Args:
             state_uuid (UUID): The state UUID.
-
         Returns:
             UUID: The state UUID.
             History: The chat history.
-
             gr.update: The chat history component.
         """
         state_uuid = get_unique_user_key(state_uuid)
@@ -244,7 +242,10 @@ class RagInterface:
             user_history.to_gradio(),  # history
         )
 
-    def undo(self, state_uuid: UUID) -> Tuple[
+    @staticmethod
+    def undo(
+            state_uuid: UUID,
+    ) -> Tuple[
         UUID,
         gr.update,  # history
     ]:
@@ -274,7 +275,9 @@ class RagInterface:
         )
 
     def retry(
-            self, state_uuid: UUID, state_document: Optional[fitz.Document],
+            self,
+            state_uuid: UUID,
+            state_document: Optional[fitz.Document],
     ) -> Tuple[
         UUID,
         gr.update,  # history
@@ -291,12 +294,10 @@ class RagInterface:
         Returns:
             UUID: The state UUID.
             History: The state history.
-
             gr.update: The chat history component.
             gr.update: The PDF display component.
             gr.update: The counter component.
         """
-
         state_uuid = get_unique_user_key(state_uuid)
         user_history = get_by_session_id(state_uuid)
 
@@ -314,13 +315,11 @@ class RagInterface:
             message.content,
         )
 
-        # Retry the last message (user)
         return (
             state_uuid,  # state_uuid
-            # updates
-            update_chat,  # history
-            update_image,  # image
-            update_counter,  # counter
+            update_chat,  # update: history
+            update_image,  # update: image
+            update_counter,  # update: counter
         )
 
 

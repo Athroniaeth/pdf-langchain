@@ -1,5 +1,5 @@
 import uuid
-from typing import Optional, List, Tuple, Sequence
+from typing import List, Optional, Sequence, Tuple
 from uuid import UUID
 
 from gradio import ChatMessage
@@ -11,12 +11,12 @@ from langchain_chroma import Chroma
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.language_models import BaseLLM
-from langchain_core.messages import BaseMessage, AIMessage, HumanMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_core.runnables import RunnableWithMessageHistory
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from loguru import logger
-from pydantic import Field, BaseModel
+from pydantic import BaseModel, Field
 from pymupdf import Document
 from transformers import AutoTokenizer
 
@@ -29,6 +29,7 @@ store = {}
 
 class InMemoryHistory(BaseChatMessageHistory, BaseModel):
     """In memory implementation of chat message history."""
+
     messages: List[BaseMessage] = Field(default_factory=list)
 
     def add_message(self, message: BaseMessage) -> None:
@@ -47,6 +48,7 @@ class InMemoryHistory(BaseChatMessageHistory, BaseModel):
         self.messages.clear()
 
     def to_gradio(self) -> History:
+        """Convert the chat history (LangChain) to Gradio format."""
         list_messages = []
 
         for langchain_message in self.messages:
@@ -99,14 +101,14 @@ class RagClient:
     embeddings_model: HuggingFaceEmbeddings
 
     def __init__(
-            self,
-            model_id: str,
-            hf_token: str,
-            id_prompt_rag: str = "athroniaeth/rag-prompt-mistral-custom-2",
-            # Todo : Permettre de modifier cela dans le CLI
-            id_prompt_contextualize: str = "athroniaeth/contextualize-prompt",
-            # Todo : Permettre de modifier cela dans le CLI
-            models_kwargs: dict = None,
+        self,
+        model_id: str,
+        hf_token: str,
+        id_prompt_rag: str = "athroniaeth/rag-prompt-mistral-custom-2",
+        # Todo : Permettre de modifier cela dans le CLI
+        id_prompt_contextualize: str = "athroniaeth/contextualize-prompt",
+        # Todo : Permettre de modifier cela dans le CLI
+        models_kwargs: dict = None,
     ):
         if models_kwargs is None:
             models_kwargs = {"max_length": 256}
@@ -156,9 +158,9 @@ class RagClient:
         return user_chroma_client
 
     def invoke(
-            self,
-            message: str,
-            state_uuid: Optional[UUID] = None,
+        self,
+        message: str,
+        state_uuid: Optional[UUID] = None,
     ) -> Tuple[UUID, List[Document]]:
         """
         Gradio pipeline, invoke the RAG model.
@@ -186,7 +188,7 @@ class RagClient:
         db_vector = self.get_user_db(state_uuid)
 
         # Create a retriever from the user database
-        retriever = db_vector.as_retriever(search_kwargs={'k': 3})
+        retriever = db_vector.as_retriever(search_kwargs=search_kwargs)
 
         # Create RAG pipeline, LangChain 'rag_chain' example "langchain\chains\retrieval.py"
         combine_docs_chain = create_stuff_documents_chain(
@@ -194,16 +196,9 @@ class RagClient:
             self.prompt_rag,
         )
 
-        history_aware_retriever = create_history_aware_retriever(
-            self.llm_model,
-            retriever,
-            self.contextualize_q_prompt
-        )
+        history_aware_retriever = create_history_aware_retriever(self.llm_model, retriever, self.contextualize_q_prompt)
 
-        rag_chain = create_retrieval_chain(
-            history_aware_retriever,
-            combine_docs_chain
-        )
+        rag_chain = create_retrieval_chain(history_aware_retriever, combine_docs_chain)
 
         pipeline = RunnableWithMessageHistory(
             rag_chain,
@@ -214,10 +209,7 @@ class RagClient:
         )
 
         # Todo : Add inference logging decorator
-        pipeline_output = pipeline.invoke(
-            input={"input": f"{message}"},
-            config={"configurable": {"session_id": state_uuid}}
-        )
+        pipeline_output = pipeline.invoke(input={"input": f"{message}"}, config={"configurable": {"session_id": state_uuid}})
 
         # Get the output from the pipeline
         llm_output = pipeline_output["answer"]
@@ -238,38 +230,3 @@ class RagClient:
                 collection.delete(ids)
 
         return state_uuid
-
-    def clear_history(self, state_uuid: UUID) -> Tuple[UUID, History]:
-        """Gradio pipeline, clean the user chat history."""
-        state_uuid = get_unique_user_key(state_uuid)
-        user_history = get_by_session_id(state_uuid)
-        user_history.clear()
-        return state_uuid, user_history.to_gradio()
-
-    def undo_history(self, state_uuid: UUID) -> Tuple[UUID, History]:
-        """Gradio pipeline, undo the last message from the user chat history."""
-        state_uuid = get_unique_user_key(state_uuid)
-        user_history = get_by_session_id(state_uuid)
-
-        if len(user_history.messages) > 0:
-            user_history.messages.pop()
-        else:
-            raise ValueError("No message to undo")
-
-        return state_uuid, user_history.to_gradio()
-
-    def retry_history(self, state_uuid: UUID) -> Tuple[UUID, History]:
-        """Gradio pipeline, retry the last message from the user chat history."""
-        logger.debug(f"Retrying history for user with key '{state_uuid}'")
-
-        state_uuid = get_unique_user_key(state_uuid)
-        user_history = get_by_session_id(state_uuid)
-
-        if len(user_history.messages) > 1:
-            user_history.messages.pop()
-            user_history.messages.pop()
-        else:
-            raise ValueError("No message to retry")
-
-        logger.debug(f"History retried for user with key '{state_uuid}'")
-        return state_uuid, user_history.to_gradio()
