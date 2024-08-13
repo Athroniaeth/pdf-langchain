@@ -1,3 +1,5 @@
+"""Module for simplifying complex type hints in the project."""
+
 from typing import Callable, List
 
 from gradio import ChatMessage

@@ -48,7 +48,7 @@ class StreamToLogger:
         # Récupérer la configuration du niveau INFO
         info_level = logger.level("INFO")
 
-        # Créer un nouveau niveau nommé : "PRINT" équivalent à INFO (niveau 20)
+        # Créer un nouveau niveau "PRINT" équivalent à INFO (niveau 20)
         logger.level("PRINT", no=info_level.no, color=info_level.color, icon=info_level.icon)
 
     def write(self, message):
@@ -61,17 +61,17 @@ class StreamToLogger:
     @staticmethod
     def find_depth():
         """
-        Trouver la profondeur de l'appelant de l'application.
+        Find the depth of the caller of the application.
 
         Notes:
-            On ignore la première profondeur car elle est liée à la classe StreamToLogger.
-            Tous les appelants de l'application sont dans le répertoire "src".
+            We ignore the first depth because it's related to the StreamToLogger class.
+            All callers of the application are in the "src" directory.
         """
         depth = 0
         frame = inspect.currentframe().f_back
 
         while frame:
-            # Obtenir le chemin du fichier appelant
+            # Get the filename of the caller
             filename = frame.f_code.co_filename
 
             conditions = (
@@ -85,13 +85,16 @@ class StreamToLogger:
             frame = frame.f_back
             depth += 1
 
-        # Si aucun fichier "src." n'est trouvé, utiliser la profondeur par défaut
+        # If not found, use the default depth
         return 1
 
-    def flush(self):
+    @staticmethod
+    def flush():
+        # StreamToLogger must have flush method
         pass
 
-    def isatty(self):
+    @staticmethod
+    def isatty():
         """Return True if the stream is a tty (terminal)."""
         return False
 
@@ -99,6 +102,7 @@ class StreamToLogger:
 class InterceptHandler(logging.Handler):
     def emit(self, record):
         """
+        Intercept the logging message and send it to loguru.
 
         Notes:
             depth = 1: logging:handle:1028
@@ -108,21 +112,21 @@ class InterceptHandler(logging.Handler):
             depth = 5: logging:LEVEL:15XX
             depth = 6: is the real caller
         """
-        # Appliquer le prétraitement au message
+        # Apply preprocessing to the message
         message = self.preprocess_message(record.getMessage())
 
-        # Récupérer le niveau de log correspondant dans Loguru
+        # Get the corresponding log level in Loguru
         level = logger.level(record.levelname).name if logger.level(record.levelname).name else "CRITICAL"
 
-        # Trouver l'origine de l'appel du message et le logger
+        # Find the origin of the message call and the logger
         logger.opt(depth=6, exception=record.exc_info).log(level, message)
 
     @staticmethod
     def preprocess_message(message):
-        # Remplacer les retours à la ligne par des espaces
+        # Replace newlines with spaces (have one line per log)
         message = message.replace("\n", " ").replace("\r", " ")
 
-        # Supprimer les espaces en trop
+        # Deduplicate all spaces
         message = " ".join(message.split())
 
         return message

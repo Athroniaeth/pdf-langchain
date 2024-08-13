@@ -37,10 +37,10 @@ class RagInterface:
     pdf_reader: PDFReader
 
     def __init__(
-            self,
-            model_id: str,
-            hf_token: str,
-            examples: Examples = None,
+        self,
+        model_id: str,
+        hf_token: str,
+        examples: Examples = None,
     ):
         if examples is None:
             examples = [
@@ -134,10 +134,10 @@ class RagInterface:
         )
 
     def echo(
-            self,
-            state_uuid: Optional[UUID],
-            state_document: Optional[fitz.Document],
-            message: str,
+        self,
+        state_uuid: Optional[UUID],
+        state_document: Optional[fitz.Document],
+        message: str,
     ) -> Tuple[
         UUID,
         gr.update,  # input
@@ -217,7 +217,7 @@ class RagInterface:
 
     @staticmethod
     def clear(
-            state_uuid: UUID,
+        state_uuid: UUID,
     ) -> Tuple[
         UUID,
         gr.update,  # history
@@ -244,7 +244,7 @@ class RagInterface:
 
     @staticmethod
     def undo(
-            state_uuid: UUID,
+        state_uuid: UUID,
     ) -> Tuple[
         UUID,
         gr.update,  # history
@@ -275,9 +275,9 @@ class RagInterface:
         )
 
     def retry(
-            self,
-            state_uuid: UUID,
-            state_document: Optional[fitz.Document],
+        self,
+        state_uuid: UUID,
+        state_document: Optional[fitz.Document],
     ) -> Tuple[
         UUID,
         gr.update,  # history

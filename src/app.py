@@ -27,9 +27,6 @@ def app(
 
         ssl_keyfile (Optional[str]): The SSL key file path.
         ssl_certfile (Optional[str]): The SSL certificate file path.
-
-    Returns:
-        None
     """
     logger.debug("Starting the Gradio application")
 
@@ -40,7 +37,6 @@ def app(
 
     with gradio.Blocks(css=css) as application:
         rag_interface = RagInterface(model_id=model_id, hf_token=hf_token)
-
         rag_interface.bind_events()
 
     application.launch(

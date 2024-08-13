@@ -64,7 +64,7 @@ def _get_llm_model_hf_cloud(
 
 
 def log_inference(model_id: str):
-    """Décorateur pour logger l'exécution d'un modèle."""
+    """Decorator to log the inference time of a model."""
 
     def decorator(func):
         @wraps(func)

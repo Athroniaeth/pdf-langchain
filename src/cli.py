@@ -101,8 +101,8 @@ def get_info_environment(
 
     Args:
         environment (Environment): The environment to use.
-        ssl_keyfile (Optional[str]): The SSL key file.
-        ssl_certfile (Optional[str]): The SSL certificate file.
+        ssl_keyfile (Optional[str]): The SSL key file path.
+        ssl_certfile (Optional[str]): The SSL certificate file path.
 
     Returns:
         str: The host to use for the server.
@@ -152,7 +152,21 @@ def start(
     ssl_certfile: str = typer.Option(None, envvar="SSL_CERTFILE", help="Fichier de certificat SSL."),
     model_id: str = typer.Option("meta-llama/Meta-Llama-3.1-8B-Instruct", help="Identifiant HuggingFace du modèle LLM."),
 ):
-    """Start the server with the given environment."""
+    """
+    Start the server with the given environment.
+
+    Args:
+        ctx (typer.Context): Command context.
+        config (str): Path to the configuration file.
+        environment (Environment): The environment to use.
+        ssl_keyfile (str): The SSL key file path.
+        ssl_certfile (str): The SSL certificate file path.
+        model_id (str): The model ID of Hugging Face LLM.
+
+    Raises:
+        FileNotFoundError: If the SSL key or certificate file is not found.
+        ValueError: If the SSL key or certificate file is missing.
+    """
 
     # Get the environment information
     logger.info(f"Environment: {environment}")
@@ -180,7 +194,22 @@ def run(
     ssl_certfile: str = typer.Option(None, envvar="SSL_CERTFILE", help="Fichier de certificat SSL."),
     model_id: str = typer.Option("mistralai/Mistral-7B-Instruct-v0.3", help="Identifiant HuggingFace du modèle LLM."),
 ):
-    """Start the server with the given environment."""
+    """
+    Start the server with the given environment.
+
+    Args:
+        ctx (typer.Context): Command context.
+        config (str): Path to the configuration file.
+        host (str): Host IP address of the server.
+        port (int): Port number of host server.
+        ssl_keyfile (str): The SSL key file path.
+        ssl_certfile (str): The SSL certificate file path.
+        model_id (str): The model ID of Hugging Face LLM.
+
+    Raises:
+        FileNotFoundError: If the SSL key or certificate file is not found.
+        ValueError: If the SSL key or certificate file is missing.
+    """
 
     # Check if SSL key and certificate files exist
     if ssl_keyfile and not os.path.exists(ssl_keyfile):

@@ -66,7 +66,7 @@ class InMemoryHistory(BaseChatMessageHistory, BaseModel):
 
 
 def get_unique_user_key(state_uuid: Optional[UUID] = None) -> UUID:
-    """Gradio pipeline, get the unique user key."""
+    """Get a unique user key."""
     if state_uuid is None:
         return uuid.uuid4()
     return state_uuid
@@ -74,7 +74,6 @@ def get_unique_user_key(state_uuid: Optional[UUID] = None) -> UUID:
 
 def get_by_session_id(state_uuid: UUID) -> InMemoryHistory:
     """Get the chat history by session ID."""
-    # session_id is forced by LangChain but useless in this case
     if state_uuid not in store:
         store[state_uuid] = InMemoryHistory()
     return store[state_uuid]
@@ -104,10 +103,10 @@ class RagClient:
         self,
         model_id: str,
         hf_token: str,
+        # Todo : Permettre de modifier cela dans le CLI
         id_prompt_rag: str = "athroniaeth/rag-prompt-mistral-custom-2",
         # Todo : Permettre de modifier cela dans le CLI
         id_prompt_contextualize: str = "athroniaeth/contextualize-prompt",
-        # Todo : Permettre de modifier cela dans le CLI
         models_kwargs: dict = None,
     ):
         if models_kwargs is None:
@@ -133,11 +132,11 @@ class RagClient:
             UUID: The unique user key
         """
 
-        # Utiliser l'état utilisateur pour obtenir un identifiant unique
+        # Get the user database from UUID
         state_uuid = get_unique_user_key(state_uuid)
         user_db = self.get_user_db(state_uuid)
 
-        # Code pour traiter le fichier PDF et mettre à jour user_db
+        # Process the PDF file
         loader = PyMuPDFLoader(file_path)
         documents = loader.load()
 
@@ -145,7 +144,7 @@ class RagClient:
         chunks = splitter.split_documents(documents)
         user_db.add_documents(chunks)
 
-        print(f"PDF processed for user with key {state_uuid}")
+        logger.debug(f"PDF processed for user with key '{state_uuid}'")
         return state_uuid
 
     def get_user_db(self, user_key: UUID) -> Chroma:
@@ -167,7 +166,6 @@ class RagClient:
 
         Args:
             message (str): The current message from user.
-            history (History): List of chat messages.
             state_uuid (Optional[UUID]): The unique user key.
 
         Returns:
@@ -216,7 +214,6 @@ class RagClient:
         list_document_context = pipeline_output["context"]
 
         logger.debug(f'Result of llm model :\n"""\n{llm_output}\n"""')
-
         return state_uuid, list_document_context
 
     def clean_pdf(self, state_uuid: UUID) -> UUID:
