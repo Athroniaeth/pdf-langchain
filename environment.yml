@@ -9,26 +9,58 @@ dependencies:
   - aiohappyeyeballs
   - aiohttp
   - aiosignal
+  - alembic
+  - amqp
   - annotated-types
   - anyio
+  - apache-airflow
+  - apache-airflow-providers-celery
+  - apache-airflow-providers-common-io
+  - apache-airflow-providers-common-sql
+  - apache-airflow-providers-fab
+  - apache-airflow-providers-ftp
+  - apache-airflow-providers-http
+  - apache-airflow-providers-imap
+  - apache-airflow-providers-smtp
+  - apache-airflow-providers-sqlite
+  - apispec
+  - argcomplete
   - asgiref
   - attrs
+  - Babel
   - backoff
   - bcrypt
+  - billiard
+  - blinker
   - build
+  - cachelib
   - cachetools
+  - celery
   - certifi
+  - cffi
   - charset-normalizer
   - chroma-hnswlib
   - chromadb
   - click
+  - click-didyoumean
+  - click-plugins
+  - click-repl
+  - clickclick
   - colorama
   - coloredlogs
+  - colorlog
+  - ConfigUpdater
+  - connexion
   - contourpy
+  - cron-descriptor
+  - croniter
+  - cryptography
   - cycler
   - dataclasses-json
   - Deprecated
+  - dill
   - dnspython
+  - docutils
   - email_validator
   - exceptiongroup
   - fastapi
@@ -36,30 +68,50 @@ dependencies:
   - ffmpy
   - filelock
   - FlashRank
+  - Flask
+  - Flask-AppBuilder
+  - Flask-Babel
+  - Flask-Caching
+  - Flask-JWT-Extended
+  - Flask-Limiter
+  - Flask-Login
+  - Flask-Session
+  - Flask-SQLAlchemy
+  - Flask-WTF
   - flatbuffers
+  - flower
   - fonttools
   - frozenlist
   - fsspec
   - google-auth
+  - google-re2
   - googleapis-common-protos
   - gradio
   - gradio_client
   - greenlet
   - grpcio
+  - gunicorn
   - h11
   - httpcore
   - httptools
   - httpx
   - huggingface-hub
   - humanfriendly
+  - humanize
   - idna
-  - importlib_metadata
+  - importlib-metadata
   - importlib_resources
+  - inflection
+  - itsdangerous
   - Jinja2
+  - jmespath
   - joblib
   - jsonpatch
   - jsonpointer
+  - jsonschema
+  - jsonschema-specifications
   - kiwisolver
+  - kombu
   - kubernetes
   - langchain
   - langchain-chroma
@@ -69,14 +121,24 @@ dependencies:
   - langchain-text-splitters
   - langchainhub
   - langsmith
+  - lazy-object-proxy
+  - limits
+  - linkify-it-py
+  - lockfile
   - loguru
+  - Mako
   - markdown-it-py
   - MarkupSafe
   - marshmallow
+  - marshmallow-oneofschema
+  - marshmallow-sqlalchemy
   - matplotlib
+  - mdit-py-plugins
   - mdurl
+  - methodtools
   - mmh3
   - monotonic
+  - more-itertools
   - mpmath
   - multidict
   - mypy-extensions
@@ -85,8 +147,10 @@ dependencies:
   - oauthlib
   - onnxruntime
   - opentelemetry-api
+  - opentelemetry-exporter-otlp
   - opentelemetry-exporter-otlp-proto-common
   - opentelemetry-exporter-otlp-proto-grpc
+  - opentelemetry-exporter-otlp-proto-http
   - opentelemetry-instrumentation
   - opentelemetry-instrumentation-asgi
   - opentelemetry-instrumentation-fastapi
@@ -94,35 +158,54 @@ dependencies:
   - opentelemetry-sdk
   - opentelemetry-semantic-conventions
   - opentelemetry-util-http
+  - ordered-set
   - orjson
   - overrides
   - packaging
   - pandas
+  - pathspec
+  - pendulum
   - pillow
   - pip
+  - pluggy
   - posthog
+  - prison
+  - prometheus_client
+  - prompt_toolkit
   - protobuf
+  - psutil
   - pyasn1
   - pyasn1_modules
+  - pycparser
   - pydantic
   - pydantic_core
   - pydub
   - Pygments
+  - PyJWT
   - PyMuPDF
   - PyMuPDFb
   - pyparsing
   - PyPika
   - pyproject_hooks
   - pyreadline3
+  - python-daemon
   - python-dateutil
   - python-dotenv
   - python-multipart
+  - python-nvd3
+  - python-slugify
   - pytz
   - PyYAML
+  - redis
+  - referencing
   - regex
   - requests
   - requests-oauthlib
+  - requests-toolbelt
+  - rfc3339-validator
   - rich
+  - rich-argparse
+  - rpds-py
   - rsa
   - ruff
   - safetensors
@@ -131,19 +214,28 @@ dependencies:
   - semantic-version
   - sentence-transformers
   - sentencepiece
+  - setproctitle
   - setuptools
   - shellingham
   - six
   - sniffio
   - SQLAlchemy
+  - SQLAlchemy-JSONField
+  - SQLAlchemy-Utils
+  - sqlparse
   - starlette
   - sympy
+  - tabulate
   - tenacity
+  - termcolor
+  - text-unidecode
   - threadpoolctl
+  - time-machine
   - tokenizers
   - toml
   - tomlkit
   - torch
+  - tornado
   - tqdm
   - transformers
   - typer
@@ -151,14 +243,22 @@ dependencies:
   - typing_extensions
   - typing-inspect
   - tzdata
+  - uc-micro-py
+  - unicodecsv
+  - universal_pathlib
   - urllib3
   - uvicorn
+  - vine
   - watchfiles
+  - wcwidth
   - websocket-client
   - websockets
+  - Werkzeug
   - wheel
   - win32-setctime
+  - wirerope
   - wrapt
+  - WTForms
   - yarl
   - zipp
 name: chat_pdf

@@ -100,3 +100,37 @@ For deleting all Docker images, you can use the following command:
 ```bash
 docker rmi -f $(docker images -q)
 ```
+
+## Airflow
+
+This project uses Apache Airflow to schedule the data processing. To start the Airflow web server, you can run the
+following command:
+
+```bash
+airflow db init
+airflow db migrate
+```
+
+Create an admin user:
+
+```bash
+airflow users create \
+    --username admin \
+    --firstname FIRST_NAME \
+    --lastname LAST_NAME \
+    --role Admin \
+    --email admin@example.com \
+    --password admin
+```
+To start the Airflow web server in development, you can run the following command:
+
+```bash
+airflow standalone
+```
+
+To start the Airflow web server in production, you can run the following command:
+
+```bash
+airflow webserver --port 8080 --daemon
+airflow scheduler --daemon
+```
