@@ -27,7 +27,7 @@ def main():
     load_dotenv()
 
     # Get the arguments for the program
-    arguments = ' '.join(sys.argv[1:])
+    arguments = " ".join(sys.argv[1:])
 
     # Else print of Typer is buggy
     if "--help" not in arguments:

@@ -14,7 +14,7 @@ from src.app import app
 
 cli = Typer(pretty_exceptions_enable=False, pretty_exceptions_show_locals=False, no_args_is_help=True)
 
-LOGGER_TO_VERBOSE = ["httpcore", "urllib3", "httpx"]
+LOGGER_TO_VERBOSE = ["httpcore", "urllib3", "httpx", "multipart.multipart", "PIL.PngImagePlugin", "chromadb.config"]
 
 
 @cli.callback()
