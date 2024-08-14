@@ -71,22 +71,62 @@ python src
 
 ## Docker
 
+First, you must create the volume who allow Airflow to access to Gradio's 'db' folder contains the PDF content in vector
+
+```bash
+docker volume create shared_db_volume
+```
+
 To build the Docker image, you can run the following command:
 
 ```bash
 docker build -t chat_pdf .
 ```
 
-To run the Docker container, you can use the following command:
+### Gradio app
+
+To build the Dockerfile, you can use the following command:
 
 ```bash
-docker run -p 7860:7860 chat_pdf
+docker build -t gradio_chat_pdf .
 ```
+
+To run the Docker container, you can use the following command:
+
+- `d`: Mode daemon
+- `p`: Port to use
+- `v`: set volume for Airflow container (clear the db folder)
+- `name`: give name to container and don't have random name
+
+```bash
+docker run -d --name gradio_chat_pdf -v shared_db_volume:/app/db -p 7860:7860 gradio_chat_pdf
+```
+
+### Airflow app
+
+To build the Dockerfile, go to `airflow` folder and use the following command:
+
+```bash
+docker build -t airflow_chat_pdf .
+```
+
+To run the Docker container, you can use the following command:
+
+- `d`: Mode daemon
+- `p`: Port to use
+- `v`: set volume for Airflow container (clear the db folder)
+- `name`: give name to container and don't have random name
+
+```bash
+docker run -d --name airflow_chat_pdf -v shared_db_volume:/opt/airflow/db -p 8080:8080 airflow_chat_pdf
+```
+
+### Tips & Other
 
 For debugging purposes, you can run the following command:
 
 ```bash
-docker run -it -p 7860:7860 chat_pdf /bin/bash
+docker run -it -p 7860:7860 xxxx_chat_pdf /bin/bash
 ```
 
 For deleting all Docker containers, you can use the following command:
