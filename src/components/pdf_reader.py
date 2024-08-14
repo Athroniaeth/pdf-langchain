@@ -36,7 +36,7 @@ class PDFReader:
 
         with gr.Column(variant="compact"):
             self.file_input = gr.File(label="Upload PDF", type="filepath", file_types=[".pdf"])
-            self.display = gr.Image(visible=False, height=height)
+            self.display = gr.Image(visible=False, height=height, elem_id="pdf_display")
             self.counter = gr.Textbox(
                 show_label=False,
                 max_lines=1,

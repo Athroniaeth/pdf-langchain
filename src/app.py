@@ -7,15 +7,15 @@ from src.components import RagInterface
 
 
 def app(
-        model_id: str,
-        hf_token: str,
-        host: str = "127.0.0.1",
-        port: int = 7860,
-        debug: bool = False,
-        ssl_keyfile: Optional[str] = None,
-        ssl_certfile: Optional[str] = None,
-        max_file_size: str = "1mb",
-        enable_monitoring: bool = False,
+    model_id: str,
+    hf_token: str,
+    host: str = "127.0.0.1",
+    port: int = 7860,
+    debug: bool = False,
+    ssl_keyfile: Optional[str] = None,
+    ssl_certfile: Optional[str] = None,
+    max_file_size: str = "1mb",
+    enable_monitoring: bool = False,
 ):
     """
     Main function to run Gradio application.
@@ -38,6 +38,7 @@ def app(
     css = """
         #counter input { text-align: center; }
         .lg { font-size: calc(var(--button-large-text-size) - 1px); }
+        #pdf_display img { height: 408px; }
         """
 
     with gradio.Blocks(css=css) as application:
