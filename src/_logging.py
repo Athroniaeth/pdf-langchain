@@ -11,13 +11,14 @@ from loguru import logger
 
 from src import LOGGING_PATH, PROJECT_PATH
 
+SEPARATOR_RETURN = "\n" + " " * 20 + "|"
 DEFAULT_FORMAT = (
     "<blue>{time:YYYY-MM-DD HH:mm:ss}</blue> | "
     "<level>{level}</level> | <red>"
     "<cyan>{extra[short_name]}</cyan>."
     "<cyan>{file}</cyan>:"
     "<cyan>{function}</cyan>:"
-    "</red><cyan>{line}</cyan>\n                    | "
+    f"</red><cyan>{{line}}</cyan>{SEPARATOR_RETURN} "
     "<level>{message}</level>\n"
 )
 
@@ -45,18 +46,14 @@ class StreamToLogger:
     def __init__(self, level_name="PRINT"):
         self.level_name = level_name
 
-        # Récupérer la configuration du niveau INFO
-        info_level = logger.level("INFO")
-
-        # Créer un nouveau niveau "PRINT" équivalent à INFO (niveau 20)
-        logger.level("PRINT", no=info_level.no, color=info_level.color, icon=info_level.icon)
-
     def write(self, message):
         message = message.strip()
 
         if message:
             depth = self.find_depth()
-            logger.opt(depth=depth).log(self.level_name, f"{message}")
+            message = InterceptHandler.preprocess_message(message)
+            level_name = "WARNING" if "warning" in message.lower() else self.level_name
+            logger.opt(depth=depth).log(level_name, f"{message}")
 
     @staticmethod
     def find_depth():
@@ -123,13 +120,19 @@ class InterceptHandler(logging.Handler):
 
     @staticmethod
     def preprocess_message(message):
+        # Remove duplicate spaces
+        list_words = message.split(" ")
+
+        # Remove empty strings (spaces)
+        list_words = filter(lambda x: x != "", list_words)
+
+        # Join the words with a space
+        new_message = " ".join(list_words)
+
         # Replace newlines with spaces (have one line per log)
-        message = message.replace("\n", " ").replace("\r", " ")
+        new_message = new_message.replace("\n", SEPARATOR_RETURN)  # .replace("\r", " ")
 
-        # Deduplicate all spaces
-        message = " ".join(message.split())
-
-        return message
+        return new_message
 
 
 def set_level(level: Level):
@@ -247,8 +250,15 @@ def setup_logger(
     )
     logging.basicConfig(handlers=[InterceptHandler()], level=level)
 
+    # Get the configuration of the INFO level
+    info_level = logger.level("INFO")
+
+    # Create a new level "PRINT" equivalent to INFO (level 20)
+    logger.level("PRINT", no=info_level.no, color=info_level.color, icon=info_level.icon)
+
     # Redirect stdout and stderr to loguru
     sys.stdout = StreamToLogger()
+    sys.stderr = StreamToLogger(level_name="ERROR")
 
     # Change the level of the logger (else not working)
     set_level(level)
