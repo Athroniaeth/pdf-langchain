@@ -41,7 +41,10 @@ def app(
         """
 
     with gradio.Blocks(css=css) as application:
-        rag_interface = RagInterface(model_id=model_id, hf_token=hf_token)
+        rag_interface = RagInterface(
+            model_id=model_id,
+            hf_token=hf_token,
+        )
         rag_interface.bind_events()
 
     application.launch(
