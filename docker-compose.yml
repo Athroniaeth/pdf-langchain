@@ -12,7 +12,7 @@ services:
       context: ./airflow
     container_name: airflow
     volumes:
-      - shared_db_volume:/opt/airflow/db
+      - shared_db_volume:/opt/db
     ports:
       - "8080:8080"
 
