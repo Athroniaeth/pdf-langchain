@@ -71,6 +71,17 @@ python src
 
 ## Docker
 
+### Docker-compose
+
+This project have a `docker-compose.yml` file to run the project in production. To run the project, you can use the
+following command:
+
+```bash
+docker-compose up --build -d
+```
+
+### Manual
+
 First, you must create the volume who allow Airflow to access to Gradio's 'db' folder contains the PDF content in vector
 
 ```bash
