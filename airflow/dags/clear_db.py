@@ -17,7 +17,8 @@ def check_and_delete_old_files():
     logging.info(f"Check and deleting old files in folder : '{DIRECTORY_TO_MONITOR}'")
 
     if not DIRECTORY_TO_MONITOR.exists():
-        raise FileExistsError(f"Database vector path don't exist : '{DIRECTORY_TO_MONITOR}'")
+        logging.error(f"Database vector path don't exist : '{DIRECTORY_TO_MONITOR}'")
+        return
 
     # Get the current time
     current_time = time.time()
