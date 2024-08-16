@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from airflow import DAG
+from airflow.exceptions import AirflowFailException
 from airflow.operators.python import PythonOperator
 
 # Folder to monitor
@@ -17,8 +18,7 @@ def check_and_delete_old_files():
     logging.info(f"Check and deleting old files in folder : '{DIRECTORY_TO_MONITOR}'")
 
     if not DIRECTORY_TO_MONITOR.exists():
-        logging.error(f"Database vector path don't exist : '{DIRECTORY_TO_MONITOR}'")
-        return
+        raise AirflowFailException(f"Database vector path don't exist : '{DIRECTORY_TO_MONITOR}'")
 
     # Get the current time
     current_time = time.time()
@@ -36,11 +36,16 @@ def check_and_delete_old_files():
 
         # If the folder was modified more than 1 hour ago, delete it
         if time_elapsed > 3600:
-            logging.info(f"\tThis folder is deleting !")
-            shutil.rmtree(folder_path)
+            logging.info(f"\tThis folder was last modified more than 1 hour ago !")
+
+            try:
+                shutil.rmtree(folder_path)
+                logging.info(f"\tFolder '{folder_path.stem}' deleted !")
+            except Exception as exception:
+                raise AirflowFailException(f"Error while deleting folder '{folder_path.stem}' : {exception}")
 
 
-# Définir le DAG
+# Default arguments
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
