@@ -4,6 +4,7 @@ services:
     container_name: gradio
     volumes:
       - shared_db_volume:/app/db
+      - /etc/letsencrypt/live/pierrechaumont.fr/:/etc/letsencrypt/live/pierrechaumont.fr/
     ports:
       - "7860:7860"
 

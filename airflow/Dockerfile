@@ -20,15 +20,6 @@ COPY ./dags ${AIRFLOW_HOME}/dags
 # Initialize the SQLite database (useful for a development environment)
 RUN airflow db init
 
-# Create an admin user
-RUN airflow users create \
-    --username airflow \
-    --firstname Air \
-    --lastname Flow \
-    --role Admin \
-    --email admin@example.com \
-    --password airflow
-
 # Expose by default port 8080
 EXPOSE 8080
 
