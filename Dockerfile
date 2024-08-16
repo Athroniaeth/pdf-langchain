@@ -20,7 +20,7 @@ COPY src/ src/
 # Activate the conda environment
 SHELL ["conda", "run", "-n", "chat_pdf", "/bin/bash", "-c"]
 
-# Expose port 7860 (80, 433 already in use)
+# Expose by default port 7860 (80, 433 already in use)
 EXPOSE 7860
 
 # Set the command to run the application
