@@ -12,10 +12,6 @@ USER root
 
 # Set write permission on the 'db' volume directory for the 'airflow' user
 RUN mkdir /db
-RUN chown -R airflow:root /db
-
-# Change the user to 'airflow'
-USER airflow
 
 # Copy local DAGs files to the container
 COPY ./dags ${AIRFLOW_HOME}/dags
