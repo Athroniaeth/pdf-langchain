@@ -3,14 +3,15 @@ FROM apache/airflow:2.9.3-python3.12
 
 # Default environment variables
 ENV AIRFLOW_HOME=/opt/airflow
-ENV AIRFLOW__CORE__DEFAULT_TIMEZONE="Europe/Paris"
 ENV AIRFLOW__WEBSERVER__AUTHENTICATE=True
 ENV AIRFLOW__WEBSERVER__AUTH_BACKEND=airflow.contrib.auth.backends.password_auth
+ENV AIRFLOW__CORE__SQL_ALCHEMY_CONN=sqlite:////opt/airflow/airflow.db
 
 # Change the user to root
 USER root
 
 # Set write permission on the 'db' volume directory for the 'airflow' user
+RUN mkdir /db
 RUN chown -R airflow:root /db
 
 # Change the user to 'airflow'
