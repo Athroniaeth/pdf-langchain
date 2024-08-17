@@ -4,7 +4,8 @@ services:
     container_name: gradio
     volumes:
       - shared_db_volume:/app/db
-      - /etc/letsencrypt/live/pierrechaumont.fr/:/etc/letsencrypt/live/pierrechaumont.fr/
+      # shorten letsencrypt path because symbolic link is not supported else where
+      - /etc/letsencrypt/:/etc/letsencrypt/
     ports:
       - "7860:7860"
 
