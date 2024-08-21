@@ -9,6 +9,7 @@ from langchain.chains.history_aware_retriever import create_history_aware_retrie
 from langchain.chains.retrieval import create_retrieval_chain
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import PyMuPDFLoader
+from langchain_community.embeddings import HuggingFaceHubEmbeddings
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.language_models import BaseLLM
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
@@ -97,7 +98,7 @@ class RagClient:
 
     llm_model: BaseLLM
     tokenizer: AutoTokenizer
-    embeddings_model: HuggingFaceEmbeddings
+    embeddings_model: HuggingFaceHubEmbeddings
 
     def __init__(
         self,
@@ -115,7 +116,10 @@ class RagClient:
         self.llm_model = get_llm_model(model_id=model_id, hf_token=hf_token, max_new_tokens=512, **models_kwargs)
         self.tokenizer = AutoTokenizer.from_pretrained(model_id)
 
-        self.embeddings_model = HuggingFaceEmbeddings()
+        self.embeddings_model = HuggingFaceHubEmbeddings(
+            repo_id="sentence-transformers/all-MiniLM-L6-v2",
+            huggingfacehub_api_token=hf_token,
+        )
 
         self.prompt_rag = hub.pull(id_prompt_rag)
         self.contextualize_q_prompt = hub.pull(id_prompt_contextualize)
