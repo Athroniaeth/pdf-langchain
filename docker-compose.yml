@@ -8,6 +8,7 @@ services:
       - /etc/letsencrypt/:/etc/letsencrypt/
     ports:
       - "7860:7860"
+    restart: unless-stopped
 
   airflow:
     build:
@@ -24,6 +25,7 @@ services:
       - AIRFLOW__CORE__DEFAULT_TIMEZONE=${AIRFLOW__CORE__DEFAULT_TIMEZONE}
       - AIRFLOW__WEBSERVER__AUTHENTICATE=${AIRFLOW__WEBSERVER__AUTHENTICATE}
       - AIRFLOW__WEBSERVER__AUTH_BACKEND=${AIRFLOW__WEBSERVER__AUTH_BACKEND}
+    restart: unless-stopped
 
 volumes:
   shared_db_volume:
