@@ -24,4 +24,4 @@ RUN airflow db init
 EXPOSE 8080
 
 # Start Airflow Webserver and Scheduler when the container starts
-CMD "bash -c airflow scheduler & airflow webserver --port 8080 --ssl-key /etc/letsencrypt/live/pierrechaumont.fr/privkey.pem --ssl-cert /etc/letsencrypt/live/pierrechaumont.fr/fullchain.pem"
+CMD ["bash", "-c", "airflow scheduler & airflow webserver --port 8080 --ssl-key /etc/letsencrypt/live/pierrechaumont.fr/privkey.pem --ssl-cert /etc/letsencrypt/live/pierrechaumont.fr/fullchain.pem"]

@@ -25,4 +25,4 @@ EXPOSE 7860
 
 # Set the command to run the application
 # (--no-capture-output to return stdout to the console)
-CMD "conda run --no-capture-output -n chat_pdf python src run --host 0.0.0.0 --ssl-keyfile /etc/letsencrypt/live/pierrechaumont.fr/privkey.pem --ssl-certfile /etc/letsencrypt/live/pierrechaumont.fr/fullchain.pem"
+CMD ["conda", "run", "--no-capture-output", "-n", "chat_pdf", "python", "src", "run", "--host", "0.0.0.0", "--ssl-keyfile", "/etc/letsencrypt/live/pierrechaumont.fr/privkey.pem", "--ssl-certfile", "/etc/letsencrypt/live/pierrechaumont.fr/fullchain.pem"]
