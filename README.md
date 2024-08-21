@@ -76,8 +76,17 @@ python src
 This project have a `docker-compose.yml` file to run the project in production. To run the project, you can use the
 following command:
 
+- build: Build the Docker image if not exists
+- d: Mode daemon (run in background)
+
 ```bash
 docker-compose up --build -d
+```
+
+If the build Docker timeout because miniconda install is too long, you can use the following command:
+
+```bash
+COMPOSE_HTTP_TIMEOUT=3600 sudo docker compose up --build
 ```
 
 ### Manual
